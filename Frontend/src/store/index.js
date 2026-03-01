@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
 import loginModalReducer from './loginSlice';
+import commonReducer from './commonSlice';
 
 const store = configureStore({
   reducer: {
-    loginModal: loginModalReducer
+    loginModal: loginModalReducer,
+    common: commonReducer
   }
 });
 

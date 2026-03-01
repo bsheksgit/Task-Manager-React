@@ -5,7 +5,6 @@ import { StyledEngineProvider } from '@mui/material/styles';
 import GlobalStyles from '@mui/material/GlobalStyles';
 import store from './store/index.js';
 import { Provider } from 'react-redux';
-import Login from './pages/Login.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

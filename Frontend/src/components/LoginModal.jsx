@@ -82,7 +82,7 @@ export default function LoginModal() {
         onSubmit={handleLogin}>
             <TextField label="Email" name="email" variant="filled" className="w-1/2 mt-5" required />
             <TextField label="Password" name="password" variant="filled" className="w-1/2 mt-4 mb-5" required />
-            <button type="submit" className="mt-4 px-4 py-2 w-1/3 bg-blue-500 text-white rounded hover:bg-blue-600">Login</button>
+            <button type="submit" className="mt-4 px-4 py-2 w-1/3 bg-blue-500 text-white rounded hover:bg-blue-600 hover:cursor-pointer">Login</button>
         </form>
         { loginFailed && <p className="text-red-500">Login failed. Please try again.</p>}
         {isLoading && <div className="fixed inset-0 flex items-center justify-center z-50 bg-opacity-50"><CircularProgress color="inherit" /></div>}

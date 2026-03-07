@@ -104,7 +104,7 @@ export default function Welcome() {
                 text-white
                 ease-in-out duration-200
                 rounded hover:bg-blue-600
-                hover:-translate-y-1 hover:scale-105 hover:bg-indigo-500" 
+                hover:-translate-y-1 hover:scale-105 hover:bg-indigo-500 hover:cursor-pointer" 
                 onClick={() => handleLogin()}>
                     Login
                 </button>
@@ -128,14 +128,17 @@ export default function Welcome() {
                 ${isLoading ? 'bg-gray-200' : 'bg-indigo-400'} 
                 text-white
                 ease-in-out duration-200
-                rounded hover:bg-blue-600
+                rounded hover:bg-blue-600 hover:cursor-pointer
                 ${isLoading ? '' : 'hover:-translate-y-1 hover:scale-105 hover:bg-indigo-500'}`}
                 disabled={isLoading} type="submit">
                     Signup
                 </button>
                 </form>
             </div>
-            {isLoading && <div className="fixed inset-0 flex items-center justify-center z-50 bg-opacity-50"><CircularProgress color="inherit" /></div>}
+            {isLoading && 
+            <div className="fixed inset-0 flex items-center justify-center z-50 bg-opacity-50">
+                <CircularProgress color="inherit" />
+            </div>}
         </div>
     )
 }

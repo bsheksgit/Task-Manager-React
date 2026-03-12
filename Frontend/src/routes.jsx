@@ -6,7 +6,7 @@ import RequireAuth from "./components/RequireAuth";
 const router = createBrowserRouter([
     { path: "/", 
     element: <Welcome />},
-    { path: "/user-tasks", 
+    { path: "/users/:userId/tasks", 
     element: <RequireAuth><UserTasks/></RequireAuth> 
     }
 ]);

@@ -9,7 +9,7 @@ import pymongo
 import uvicorn
 from passlib.context import CryptContext
 from fastapi.middleware.cors import CORSMiddleware
-from jose import jwt
+from jose import jwt, JWTError, ExpiredSignatureError
 
 from fastapi import HTTPException
 
@@ -28,6 +28,7 @@ app.add_middleware(
 client = pymongo.MongoClient(os.getenv("MONGODB_URL", "mongodb://localhost:27017/"))
 db = client["TaskManager"]
 users_collection = db["users"]
+tasks_collection = db["tasks"]
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -51,6 +52,12 @@ class User(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+class UserTask(BaseModel):
+    userId: str
+    title: str
+    description: str
+    todoList: list[str] | None = None
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     """Create a JWT access token."""
@@ -113,18 +120,38 @@ def login(request: LoginRequest):
         "token_type": "bearer"
     }
 
-@app.post("/save-user-task")
-def protected_route(token: str = fastapi.Depends(lambda: fastapi.Header(..., alias="Authorization"))):
-    """Protected endpoint that requires a valid JWT token to save a user's task."""
+def get_current_user(authorization: str = fastapi.Header(..., alias="Authorization")):
+    """Dependency that validates Authorization header and returns JWT payload."""
     try:
-        payload = jwt.decode(token.split(" ")[1], SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("user_id")
-        email = payload.get("email")
-        return {"message": f"Access granted for user {email} with ID {user_id}"}
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token has expired")
-    except jwt.JWTError:
-        raise HTTPException(401, "Invalid token")
+        parts = authorization.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization header")
+        token = parts[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@app.post("/save-user-tasks")
+def save_user_task(task: UserTask, payload: dict = fastapi.Depends(get_current_user)):
+    """Save a user's task to the database. User is identified from JWT payload."""
+    user_id = payload.get("user_id")
+    email = payload.get("email")
+
+    # Build task document and ensure the task is associated with the authenticated user
+    task_dict = task.dict()
+    task_dict["userId"] = user_id
+    task_dict.setdefault("todoList", task_dict.get("todoList") or [])
+    task_dict["created_at"] = datetime.utcnow()
+
+    try:
+        result = tasks_collection.insert_one(task_dict)
+        return {"message": "Task saved successfully", "task_id": str(result.inserted_id)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving task: {str(e)}")
 
 
 

@@ -8,11 +8,13 @@ import { commonActions } from './store/commonSlice.jsx';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import ErrorModal from './components/ErrorModal.jsx';
+import NewTaskModal from './components/NewTaskModal.jsx';
 
 function App() {
 
   const loginModalIsOpen = useSelector(state => state.loginModal.loginModal.isOpen);
   const errorModalIsOpen = useSelector(state => state.common.errorModal.isOpen);
+  const newTaskModalIsOpen = useSelector(state => state.common.newTaskModal.isOpen);
   const snackbar = useSelector(state => state.common.snackbar);
   const dispatch = useDispatch();
 
@@ -38,6 +40,7 @@ function App() {
     </Alert>
     </Snackbar>
     {errorModalIsOpen && <ErrorModal />}
+    {newTaskModalIsOpen && <NewTaskModal />}
     </>
   )
 }

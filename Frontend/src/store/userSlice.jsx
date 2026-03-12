@@ -4,11 +4,15 @@ const userSlice = createSlice({
   name: 'user',
   initialState: {
     userDetails: {name: '', email: ''},
-    userTasks: []
-
+    userTasks: {tasks: []}
   },
   reducers: {
-
+    setUserDetails: (state, action) => {
+      state.userDetails = action.payload;
+    },
+    setUserTasks: (state, action) => {
+      state.userTasks = action.payload;
+    }
   }
 });
 

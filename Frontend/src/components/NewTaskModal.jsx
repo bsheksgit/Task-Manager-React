@@ -1,0 +1,92 @@
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { commonActions } from '../store/commonSlice.jsx';
+import { userActions } from '../store/userSlice.jsx';
+import TextField from "@mui/material/TextField";
+import Button from '@mui/material/Button';
+
+const NAME_LIMIT = 50;
+const DESC_LIMIT = 100;
+
+function countWords(text) {
+    if (!text || !text.trim()) return 0;
+    return text.trim().length;
+}
+
+export default function NewTaskModal() {
+    const dispatch = useDispatch();
+    const userTasks = useSelector((state) => state.user.userTasks);
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+
+    const nameWords = countWords(name);
+    const descWords = countWords(description);
+    const isNameOver = nameWords > NAME_LIMIT;
+    const isDescOver = descWords > DESC_LIMIT;
+    const isSaveDisabled = !name.trim() || isNameOver || isDescOver || nameWords === 0 || descWords === 0;
+
+    const handleSave = () => {
+        if (isSaveDisabled) return;
+        const newTask = {
+            id: Date.now(),
+            title: name,
+            description: description
+        };
+        const updated = { tasks: [...(userTasks?.tasks || []), newTask] };
+        dispatch(userActions.setUserTasks(updated));
+        dispatch(commonActions.closeNewTaskModal());
+    };
+
+    const handleClose = () => {
+        dispatch(commonActions.closeNewTaskModal());
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
+            <div className="relative bg-yellow-200 rounded-lg p-10 w-1/2 flex flex-col items-center justify-center gap-4">
+                <div className="absolute top-2 right-2 cursor-pointer hover:bg-red-600 rounded-lg" onClick={handleClose}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+                <h1 className="text-4xl font-bold text-gray-800">Add Task Details</h1>
+                <div className="flex flex-col items-center gap-4 w-full">
+                    <TextField
+                        label="Task Name"
+                        name="name"
+                        variant="filled"
+                        className="w-3/4 mt-5"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        error={isNameOver}
+                        helperText={isNameOver ? `Limit exceeded (${nameWords}/${NAME_LIMIT} characters)` : `${nameWords}/${NAME_LIMIT} characters`}
+                    />
+                    <TextField
+                        label="Task Description"
+                        name="description"
+                        variant="filled"
+                        className="w-3/4 mt-4 mb-5"
+                        required
+                        multiline
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        error={isDescOver}
+                        helperText={isDescOver ? `Limit exceeded (${descWords}/${DESC_LIMIT} characters)` : `${descWords}/${DESC_LIMIT} characters`}
+                    />
+                    <div className="flex gap-4">
+                        <Button
+                            variant='contained'
+                            color='primary'
+                            onClick={handleSave}
+                            disabled={isSaveDisabled}
+                        >
+                            Save
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

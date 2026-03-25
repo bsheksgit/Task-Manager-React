@@ -81,7 +81,7 @@ export default function LoginModal() {
         <form className={`flex flex-col justify-center items-center w-full ${isLoading ? 'blur-xs' : ''}`} 
         onSubmit={handleLogin}>
             <TextField label="Email" name="email" variant="filled" className="w-1/2 mt-5" required />
-            <TextField label="Password" name="password" variant="filled" className="w-1/2 mt-4 mb-5" required />
+            <TextField label="Password" name="password" variant="filled" className="w-1/2 mt-4 mb-5" required type="password" />
             <button type="submit" className="mt-4 px-4 py-2 w-1/3 bg-blue-500 text-white rounded hover:bg-blue-600 hover:cursor-pointer">Login</button>
         </form>
         { loginFailed && <p className="text-red-500">Login failed. Please try again.</p>}

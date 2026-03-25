@@ -81,4 +81,35 @@ loginUser: async (data) => {
         throw error;
     }
 }
+,
+saveUserTasks: async (userId, tasks) => {
+    try {
+        const payload = { userId, tasks };
+        const response = await apiClient.post('/save-user-tasks', payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error saving user tasks:', error);
+        throw error;
+    }
+}
+,
+getUserTasks: async (userId) => {
+    try {
+        const response = await apiClient.get('/get-user-tasks', { params: { userId } });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user tasks:', error);
+        throw error;
+    }
+}
+,
+deleteUserTask: async (userId, taskId) => {
+    try {
+        const response = await apiClient.delete('/delete-user-task', { params: { userId, taskId } });
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting user task:', error);
+        throw error;
+    }
+}
 }

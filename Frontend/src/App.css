@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+/* Ensure only the BODY provides vertical scrolling to avoid duplicate scrollbars */
+html {
+	height: 100%;
+	overflow: hidden; /* hide html scrollbar */
+}
+
+body, #root {
+	min-height: 100vh;
+	height: 100%;
+	overflow-y: auto; /* enable vertical scrolling on body only */
+	-webkit-overflow-scrolling: touch;
+}
+

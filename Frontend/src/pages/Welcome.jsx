@@ -15,6 +15,7 @@ export default function Welcome() {
     const navigate = useNavigate();
     const { loading: isLoading, error, sendRequest } = useHTTP();
     const isAuthenticated = useSelector(state => state.loginModal?.auth?.isAuthenticated);
+    const currentUser = useSelector(state => state.loginModal?.auth?.user);
     const prevAuthRef = useRef(isAuthenticated);
 
     // useEffect(() => {
@@ -46,10 +47,16 @@ export default function Welcome() {
 
     useEffect(() => {
         if (!prevAuthRef.current && isAuthenticated) {
-            // user just became authenticated — navigate to protected page
+            // user just became authenticated — navigate to protected page with user id
             console.log('auth changed:', prevAuthRef.current, '->', isAuthenticated)
             dispatch(loginModalActions.closeLoginModal());
-            navigate('/user-tasks');
+            const userId = currentUser?.user_id;
+            if (userId) {
+                navigate(`/users/${userId}/tasks`);
+            } else {
+                // fallback: navigate to root if no user id available
+                navigate('/');
+            }
         }
         prevAuthRef.current = isAuthenticated;
     }, [isAuthenticated, navigate]);

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { commonActions } from '../store/commonSlice.jsx';
 import { userActions } from '../store/userSlice.jsx';
+import useHTTP from '../hooks/useHTTP.jsx';
+import { apiHelper } from '../services/axiosHelper.jsx';
 import TextField from "@mui/material/TextField";
 import Button from '@mui/material/Button';
 
@@ -16,6 +18,8 @@ function countWords(text) {
 export default function NewTaskModal() {
     const dispatch = useDispatch();
     const userTasks = useSelector((state) => state.user.userTasks);
+    const loginUser = useSelector((state) => state.loginModal?.auth?.user);
+    const { loading: saveLoading, error: saveError, sendRequest } = useHTTP();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
 
@@ -33,8 +37,26 @@ export default function NewTaskModal() {
             description: description
         };
         const updated = { tasks: [...(userTasks?.tasks || []), newTask] };
-        dispatch(userActions.setUserTasks(updated));
-        dispatch(commonActions.closeNewTaskModal());
+        
+        // prepare payload without local-only `id` fields
+        const tasksToSend = updated.tasks.map(({ id, ...rest }) => rest);
+
+        // determine userId from redux or localStorage
+        const userId = loginUser?.user_id || (JSON.parse(localStorage.getItem('user') || '{}')?.user_id) || null;
+
+        // call API via useHTTP helper
+        sendRequest(apiHelper.saveUserTasks, userId, tasksToSend)
+            .then((data) => {
+                dispatch(commonActions.openSnackbar({ message: data?.message || 'Tasks saved successfully.' }));
+                dispatch(userActions.setUserTasks(updated));
+            })
+            .catch((err) => {
+                console.error('Save tasks failed:', err);
+                dispatch(commonActions.openSnackbar({ message: 'Failed to save tasks. Please try again.' }));
+            })
+            .finally(() => {
+                dispatch(commonActions.closeNewTaskModal());
+            });
     };
 
     const handleClose = () => {
@@ -80,9 +102,9 @@ export default function NewTaskModal() {
                             variant='contained'
                             color='primary'
                             onClick={handleSave}
-                            disabled={isSaveDisabled}
+                            disabled={isSaveDisabled || saveLoading}
                         >
-                            Save
+                            {saveLoading ? 'Saving...' : 'Save'}
                         </Button>
                     </div>
                 </div>
@@ -90,3 +112,5 @@ export default function NewTaskModal() {
         </div>
     );
 }
+
+// (previously used a wrapper hook; mutation is created directly in the component)

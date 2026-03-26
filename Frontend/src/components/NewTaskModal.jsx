@@ -6,6 +6,7 @@ import useHTTP from '../hooks/useHTTP.jsx';
 import { apiHelper } from '../services/axiosHelper.jsx';
 import TextField from "@mui/material/TextField";
 import Button from '@mui/material/Button';
+import { useQueryClient } from '@tanstack/react-query';
 
 const NAME_LIMIT = 50;
 const DESC_LIMIT = 100;
@@ -17,6 +18,7 @@ function countWords(text) {
 
 export default function NewTaskModal() {
     const dispatch = useDispatch();
+    const queryClient = useQueryClient();
     const userTasks = useSelector((state) => state.user.userTasks);
     const loginUser = useSelector((state) => state.loginModal?.auth?.user);
     const { loading: saveLoading, error: saveError, sendRequest } = useHTTP();
@@ -48,7 +50,9 @@ export default function NewTaskModal() {
         sendRequest(apiHelper.saveUserTasks, userId, tasksToSend)
             .then((data) => {
                 dispatch(commonActions.openSnackbar({ message: data?.message || 'Tasks saved successfully.' }));
-                dispatch(userActions.setUserTasks(updated));
+                // Invalidate the tasks query so UserTasks re-fetches from server.
+                // This syncs the real `_id` assigned by the backend into Redux.
+                queryClient.invalidateQueries({ queryKey: ['userTasks'] });
             })
             .catch((err) => {
                 console.error('Save tasks failed:', err);
@@ -67,7 +71,7 @@ export default function NewTaskModal() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
             <div className="relative bg-yellow-200 rounded-lg p-10 w-1/2 flex flex-col items-center justify-center gap-4">
-                <div className="absolute top-2 right-2 cursor-pointer hover:bg-red-600 rounded-lg" onClick={handleClose}>
+                <div className="absolute top-2 right-2 cursor-pointer hover:bg-red-600/50 rounded-lg" onClick={handleClose}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>

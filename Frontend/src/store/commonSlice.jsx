@@ -5,7 +5,8 @@ const commonSlice = createSlice({
   initialState: {
     snackbar: { isOpen: false, message: '' },
     errorModal: { isOpen: false, message: '' },
-    newTaskModal: { isOpen: false }
+    newTaskModal: { isOpen: false },
+    deleteConfirmModal: { isOpen: false, taskId: null, title: '' }
   },
   reducers: {
     openSnackbar: (state, action) => {
@@ -25,6 +26,17 @@ const commonSlice = createSlice({
     },
     closeNewTaskModal: (state) => {
       state.newTaskModal.isOpen = false;
+    }
+    ,
+    openDeleteConfirm: (state, action) => {
+      state.deleteConfirmModal = {
+        isOpen: true,
+        taskId: action.payload?.taskId ?? null,
+        title: action.payload?.title ?? ''
+      };
+    },
+    closeDeleteConfirm: (state) => {
+      state.deleteConfirmModal = { isOpen: false, taskId: null, title: '' };
     }
   }
 });

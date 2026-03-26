@@ -7,6 +7,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { userActions } from '../store/userSlice';
 import { commonActions } from '../store/commonSlice';
 import { useDispatch, useSelector } from 'react-redux';
+import { useQuery } from '@tanstack/react-query';
 
 export default function UserTasks() {
 
@@ -30,7 +31,9 @@ export default function UserTasks() {
     const loaderData = useLoaderData();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const userId = loaderData?.userId;
 
+    // Loader UseEffect — sets initial tasks from route loader
     useEffect(() => {
         async function applyLoader() {
             setLoading(true);
@@ -42,6 +45,23 @@ export default function UserTasks() {
         }
         applyLoader();
     }, [loaderData, dispatch]);
+
+    // TanStack Query — does NOT fetch on mount (staleTime: Infinity).
+    // Only re-fetches when `invalidateQueries(['userTasks'])` is called
+    // (i.e. after a task is created or deleted).
+    const { data: freshTaskData } = useQuery({
+        queryKey: ['userTasks', userId],
+        queryFn: () => apiHelper.getUserTasks(userId),
+        enabled: !!userId,
+        staleTime: Infinity,
+    });
+
+    // When the query refetches (after a mutation), sync fresh server data to Redux
+    useEffect(() => {
+        if (freshTaskData?.tasks) {
+            dispatch(userActions.setUserTasks({ tasks: freshTaskData.tasks }));
+        }
+    }, [freshTaskData, dispatch]);
 
     const handleRetry = async () => {
         const userId = loaderData?.userId;
@@ -92,23 +112,24 @@ export default function UserTasks() {
                 <div className="w-full flex-1 flex items-center justify-center">
                     <div className="text-center">
                         <div className="text-gray-700 text-3xl mb-6">No tasks yet. Add your first task to get started!</div>
-                        <button onClick={handleAddTask} className="cursor-pointer rounded-full bg-amber-600 p-6 text-black shadow-lg hover:scale-105 transform transition">
-                            <span className="material-symbols-outlined rounded-full w-10 p-2 text-5xl ">add_2</span>
+                        <button onClick={handleAddTask} className="cursor-pointer rounded-full bg-amber-600 p-4 text-black shadow-lg hover:scale-105 transform transition">
+                            <span className="material-symbols-outlined rounded-full w-8 p-1 text-4xl">add_2</span>
                         </button>
                     </div>
                 </div>
             ) : (
                 <div className="w-11/12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10 px-4 items-stretch">
                     {userTasks.tasks.map((task) => (
-                        <div key={task._id} className="bg-yellow-300 rounded-lg shadow-md p-4 w-full flex flex-col justify-between h-full">
+                        <div key={task._id} className="bg-yellow-300/60 backdrop-blur-sm rounded-lg shadow-md p-4 w-full flex flex-col justify-between h-full">
                             <h2 className="text-2xl font-bold text-[#7b5063da]">{task.title}</h2>
                             <p className="text-gray-700 my-5">{task.description}</p>
                             <div className="flex flex-row justify-end items-center gap-4">
                                 <Button variant="contained" color="primary">Edit</Button>
-                                <Button variant="contained" color="error" startIcon={<DeleteIcon />}> Delete </Button>
+                                <Button variant="contained" color="error" startIcon={<DeleteIcon />} onClick={() => dispatch(commonActions.openDeleteConfirm({ taskId: task._id, title: task.title }))}> Delete </Button>
                             </div>
                         </div>
                     ))}
+                    
                     <button className="rounded-full w-full h-full pt-2 flex flex-row items-center justify-center cursor-pointer" onClick={handleAddTask}>
                         <span className="material-symbols-outlined 
                         text-black bg-amber-600 rounded-full w-10 p-2 h-10

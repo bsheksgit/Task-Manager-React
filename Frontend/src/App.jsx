@@ -9,6 +9,7 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import ErrorModal from './components/ErrorModal.jsx';
 import NewTaskModal from './components/NewTaskModal.jsx';
+import DeleteConfirmModal from './components/DeleteConfirmModal.jsx';
 
 function App() {
 
@@ -41,6 +42,7 @@ function App() {
     </Snackbar>
     {errorModalIsOpen && <ErrorModal />}
     {newTaskModalIsOpen && <NewTaskModal />}
+    <DeleteConfirmModal />
     </>
   )
 }

@@ -118,7 +118,7 @@ export default function UserTasks() {
                     </div>
                 </div>
             ) : (
-                <div className="w-11/12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10 px-4 items-stretch">
+                <div className="w-11/12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10 px-4 items-stretch auto-rows-[minmax(150px,auto)]">
                     {userTasks.tasks.map((task) => (
                         <div key={task._id} className="bg-yellow-300/60 backdrop-blur-sm rounded-lg shadow-md p-4 w-full flex flex-col justify-between h-full">
                             <h2 className="text-2xl font-bold text-[#7b5063da]">{task.title}</h2>
@@ -130,11 +130,12 @@ export default function UserTasks() {
                         </div>
                     ))}
                     
-                    <button className="rounded-full w-full h-full pt-2 flex flex-row items-center justify-center cursor-pointer" onClick={handleAddTask}>
+                    <button className="rounded-full w-full h-full pt-2 flex flex-row items-center justify-center">
                         <span className="material-symbols-outlined 
                         text-black bg-amber-600 rounded-full w-10 p-2 h-10
                         text-5xl cursor-pointer
-                        hover:-translate-y-1 hover:scale-105 hover:cursor-pointer transition transform">
+                        hover:-translate-y-1 hover:scale-105 hover:cursor-pointer transition transform"
+                        onClick={handleAddTask}>
                         add_2
                         </span>
                     </button>

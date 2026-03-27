@@ -48,10 +48,13 @@ export default function DeleteConfirmModal() {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
-            <div className="relative bg-[#bec1c3] rounded-lg p-8 w-1/2 flex flex-col items-center gap-4 shadow-lg">
-                <h2 className="text-[#7b5063da] text-2xl font-bold">{failedReason ? 'Delete Failed' : 'Confirm Delete'}</h2>
+            <div className="relative bg-[#bec1c3] rounded-lg p-8 w-1/2 flex flex-col items-center gap-2 shadow-lg">
+                <h2 className="text-[#7b5063da] text-2xl font-bold mb-2">{failedReason ? 'Delete Failed' : 'Confirm Delete'}</h2>
                 <p className="text-gray-700 text-center">
-                    {failedReason ? `Could not delete: ${failedReason}` : `Are you sure you want to delete "${modal?.title || 'this task'}"?`}
+                    {failedReason ? `Could not delete:` : `Are you sure you want to delete the task:`}
+                </p>
+                <p className="text-gray-700 text-center">
+                    {failedReason ? `${failedReason}` : `"${modal?.title || 'this task'}"?`}
                 </p>
                 <div className="flex gap-4 mt-4">
                     {!failedReason ? (

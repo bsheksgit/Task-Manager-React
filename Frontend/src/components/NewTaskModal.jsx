@@ -8,8 +8,8 @@ import TextField from "@mui/material/TextField";
 import Button from '@mui/material/Button';
 import { useQueryClient } from '@tanstack/react-query';
 
-const NAME_LIMIT = 50;
-const DESC_LIMIT = 100;
+const NAME_LIMIT = 30;
+const DESC_LIMIT = 90;
 
 function countWords(text) {
     if (!text || !text.trim()) return 0;

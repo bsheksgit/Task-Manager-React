@@ -13,7 +13,7 @@ import uvicorn
 from passlib.context import CryptContext
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError, ExpiredSignatureError
-
+from pydantic import Field
 from fastapi import HTTPException
 
 app = fastapi.FastAPI()
@@ -76,8 +76,6 @@ class User(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-
-from pydantic import Field
 
 class UserTask(BaseModel):
     title: str
@@ -263,10 +261,36 @@ def get_user_tasks(userId: str, payload: dict = fastapi.Depends(get_current_user
         raise HTTPException(status_code=500, detail=f"Error fetching tasks: {str(e)}")
 
 
+@app.get("/users/{userId}/tasks/{taskId}")
+def get_user_task(userId: str, taskId: str, payload: dict = fastapi.Depends(get_current_user)):
+    """Fetch a specific task for a user. Requires Authorization header.
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8000)
+    Validates that the requester matches `userId` and returns the task with
+    `_id` == `taskId` and `userId` == userId.
+    """
+    requesting_user = payload.get("user_id")
+    if requesting_user != userId:
+        raise HTTPException(status_code=403, detail="Forbidden: cannot access other user's tasks")
 
+    try:
+        try:
+            oid = ObjectId(taskId)
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid task id: {taskId}")
+
+        task = tasks_collection.find_one({"_id": oid, "userId": userId})
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        # Convert ObjectId to string for JSON serialization
+        task["_id"] = str(task["_id"])
+        task["todoList"] = task.get("todoList", [])
+        
+        return {"userId": userId, "task": task}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching task: {str(e)}")
 
 @app.delete("/delete-user-task")
 def delete_user_task(userId: str, taskId: str, payload: dict = fastapi.Depends(get_current_user)):
@@ -294,3 +318,9 @@ def delete_user_task(userId: str, taskId: str, payload: dict = fastapi.Depends(g
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting task: {str(e)}")
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="localhost", port=8000)
+
+
+

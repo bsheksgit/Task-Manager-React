@@ -55,17 +55,18 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('user');
       }
       console.warn('Token expired. User has been logged out via Redux action.');
-      // Redirect to home/login page and show a snackbar via Redux store
+
+      // Store session expiration flag in localStorage before navigating
       try {
-        window.location.href = '/';
-      } catch {}
-      try {
-        store.dispatch(
-          commonActions.openSnackbar({
-            message: 'Session expired. Please log in again.',
-          })
-        );
+        localStorage.setItem('sessionExpired', 'true');
       } catch (e) {}
+
+      // Navigate to logout page which will show appropriate message and then redirect to welcome page
+      setTimeout(() => {
+        try {
+          window.location.href = '/logout';
+        } catch {}
+      }, 100); // Short delay
     }
     return Promise.reject(error);
   }

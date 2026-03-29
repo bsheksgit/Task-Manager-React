@@ -10,13 +10,23 @@ export default function Logout() {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    // Check if this is a session expiration or manual logout
+    const isSessionExpired = localStorage.getItem('sessionExpired') === 'true';
+
+    // Clear the session expired flag
+    if (isSessionExpired) {
+      localStorage.removeItem('sessionExpired');
+    }
+
     // Dispatch logout action to clear token and user details
     dispatch(loginModalActions.logout());
 
-    // Show success message
+    // Show appropriate message based on logout reason
     dispatch(
       commonActions.openSnackbar({
-        message: 'Successfully logged out',
+        message: isSessionExpired
+          ? 'Session Expired. Logging out...'
+          : 'Session Expired! Please log in again.',
       })
     );
 

@@ -269,8 +269,11 @@ export default function UserTask() {
               Last Modified
             </h2>
             <div className="text-gray-600">
-              {new Date(taskData.written_at).toLocaleDateString()} at{' '}
-              {new Date(taskData.written_at).toLocaleTimeString()}
+              {new Date(taskData.written_at).toLocaleString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                dateStyle: 'full',
+                timeStyle: 'medium',
+              })}
             </div>
           </div>
         )}

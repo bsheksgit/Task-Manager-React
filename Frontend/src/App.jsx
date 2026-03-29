@@ -41,7 +41,8 @@ function App() {
             snackbar.message.toLowerCase().includes('error') ||
             snackbar.message.toLowerCase().includes('failed') ||
             snackbar.message === '' ||
-            snackbar.message.toLowerCase().includes('not found')
+            snackbar.message.toLowerCase().includes('not found') ||
+            snackbar.message.toLowerCase().includes('expired')
               ? 'error'
               : 'success'
           }

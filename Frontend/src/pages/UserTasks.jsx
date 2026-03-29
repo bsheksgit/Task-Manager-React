@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CircularProgress from '@mui/material/CircularProgress';
 import { userActions } from '../store/userSlice';
 import { commonActions } from '../store/commonSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -34,6 +35,7 @@ export default function UserTasks() {
   const loaderData = useLoaderData();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [loadingTaskId, setLoadingTaskId] = useState(null); // Track which task is loading
   const userId = loaderData?.userId;
 
   // Loader UseEffect — sets initial tasks from route loader
@@ -87,6 +89,18 @@ export default function UserTasks() {
   function handleAddTask() {
     dispatch(commonActions.openNewTaskModal());
   }
+
+  const handleTaskClick = (taskId) => {
+    // Set loading state for this specific task
+    setLoadingTaskId(taskId);
+
+    // Navigate to the task detail page
+    navigate(`/users/${userId}/tasks/${taskId}`);
+
+    // Note: The loading state will be cleared when the component unmounts
+    // or when the user navigates back. We could also add a timeout to clear
+    // the loading state after a few seconds in case navigation fails.
+  };
 
   return (
     <div className="bg-[#bec1c3] h-full w-full flex flex-col items-center justify-start overflow-x-hidden overflow-visible">
@@ -147,8 +161,10 @@ export default function UserTasks() {
           {userTasks.tasks.map((task) => (
             <div
               key={task._id}
-              className="bg-yellow-300/60 backdrop-blur-sm rounded-lg shadow-md p-4 w-full flex flex-col justify-between h-full cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate(`/users/${userId}/tasks/${task._id}`)}
+              className={`bg-yellow-300/60 backdrop-blur-sm rounded-lg shadow-md p-4 w-full flex flex-col justify-between h-full cursor-pointer hover:shadow-lg transition-shadow ${
+                loadingTaskId === task._id ? 'opacity-70' : ''
+              }`}
+              onClick={() => handleTaskClick(task._id)}
             >
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-[#7b5063da]">
@@ -156,27 +172,34 @@ export default function UserTasks() {
                 </h2>
                 <p className="text-gray-700 my-5">{task.description}</p>
               </div>
-              <div
-                className="flex flex-row justify-end items-center gap-4"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button
-                  variant="contained"
-                  color="error"
-                  startIcon={<DeleteIcon />}
-                  onClick={() =>
-                    dispatch(
-                      commonActions.openDeleteConfirm({
-                        taskId: task._id,
-                        title: task.title,
-                      })
-                    )
-                  }
+              {loadingTaskId === task._id ? (
+                <div className="flex flex-row justify-center items-center gap-4 py-2">
+                  <CircularProgress size={24} />
+                  <span className="text-gray-600">Loading task...</span>
+                </div>
+              ) : (
+                <div
+                  className="flex flex-row justify-end items-center gap-4"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {' '}
-                  Delete{' '}
-                </Button>
-              </div>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() =>
+                      dispatch(
+                        commonActions.openDeleteConfirm({
+                          taskId: task._id,
+                          title: task.title,
+                        })
+                      )
+                    }
+                  >
+                    {' '}
+                    Delete{' '}
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
 

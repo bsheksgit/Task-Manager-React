@@ -59,7 +59,10 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # JWT Configuration
 SECRET_KEY = "025hjoP8smSyb2o-98d5Y1CLt_N53rqo0gzr5dFY9xY"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 10  # 24 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 10
+
+# Timezone configuration
+IST_TIMEZONE = timezone(timedelta(hours=5, minutes=30))
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -183,7 +186,7 @@ def save_user_tasks(tasks: UserTasksRequest, payload: dict = fastapi.Depends(get
     if not incoming:
         return {"message": "No tasks provided"}
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(IST_TIMEZONE)
 
     # Separate new tasks (no id) from updates (client provided _id)
     new_docs = []
@@ -322,7 +325,7 @@ def update_user_task(
             raise HTTPException(status_code=404, detail="Task not found")
 
         # Prepare update document
-        now = datetime.now(timezone.utc)
+        now = datetime.now(IST_TIMEZONE)
         update_doc = {
             "title": task_update.title,
             "description": task_update.description,

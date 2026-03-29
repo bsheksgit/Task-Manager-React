@@ -33,15 +33,13 @@ export async function loader({ params }) {
       throw redirect(`/users/${userId}/tasks`);
     } else if (status === 403 || status === 401) {
       // Permission denied or session expired
-      store.dispatch(
-        commonActions.openSnackbar({
-          message:
-            'Session expired or permission denied. Redirecting to login...',
-        })
-      );
+      // Store session expiration flag and redirect to logout page
+      try {
+        localStorage.setItem('sessionExpired', 'true');
+      } catch (e) {}
 
-      // Redirect to welcome page using redirect() from react-router-dom
-      throw redirect('/');
+      // Redirect to logout page which will show appropriate message
+      throw redirect('/logout');
     } else {
       // Other errors - return error state for the component to handle
       return {

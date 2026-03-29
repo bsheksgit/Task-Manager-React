@@ -3,8 +3,8 @@ import { createSlice } from '@reduxjs/toolkit';
 const userSlice = createSlice({
   name: 'user',
   initialState: {
-    userDetails: {name: '', email: ''},
-    userTasks: {tasks: []}
+    userDetails: { name: '', email: '' },
+    userTasks: { tasks: [] },
   },
   reducers: {
     setUserDetails: (state, action) => {
@@ -12,8 +12,17 @@ const userSlice = createSlice({
     },
     setUserTasks: (state, action) => {
       state.userTasks = action.payload;
-    }
-  }
+    },
+    updateTaskTodoList: (state, action) => {
+      const { taskId, todoList } = action.payload;
+      const taskIndex = state.userTasks.tasks.findIndex(
+        (task) => task._id === taskId
+      );
+      if (taskIndex !== -1) {
+        state.userTasks.tasks[taskIndex].todoList = todoList;
+      }
+    },
+  },
 });
 
 export const userActions = userSlice.actions;

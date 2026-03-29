@@ -121,6 +121,18 @@ export const apiHelper = {
       throw error;
     }
   },
+  saveUserTask: async (userId, taskId, taskData) => {
+    try {
+      const response = await apiClient.post(
+        `/users/${userId}/tasks/${taskId}`,
+        taskData
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error saving user task:', error);
+      throw error;
+    }
+  },
   deleteUserTask: async (userId, taskId) => {
     try {
       const response = await apiClient.delete('/delete-user-task', {

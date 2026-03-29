@@ -101,6 +101,21 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
+def get_current_user(authorization: str = fastapi.Header(..., alias="Authorization")):
+    """Dependency that validates Authorization header and returns JWT payload."""
+    try:
+        parts = authorization.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization header")
+        token = parts[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
 @app.post("/signup")
 def signup(user: User):
     """Endpoint to handle user signup."""
@@ -150,20 +165,6 @@ def login(request: LoginRequest):
         "firstName": user["firstName"],
         "token_type": "bearer"
     }
-
-def get_current_user(authorization: str = fastapi.Header(..., alias="Authorization")):
-    """Dependency that validates Authorization header and returns JWT payload."""
-    try:
-        parts = authorization.split()
-        if len(parts) != 2 or parts[0].lower() != "bearer":
-            raise HTTPException(status_code=401, detail="Invalid authorization header")
-        token = parts[1]
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 @app.post("/save-user-tasks")
@@ -291,6 +292,74 @@ def get_user_task(userId: str, taskId: str, payload: dict = fastapi.Depends(get_
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching task: {str(e)}")
+
+
+@app.post("/users/{userId}/tasks/{taskId}")
+def update_user_task(
+    userId: str, 
+    taskId: str, 
+    task_update: UserTask, 
+    payload: dict = fastapi.Depends(get_current_user)
+):
+    """Update a specific task for a user. Requires Authorization header.
+
+    Validates that the requester matches `userId` and updates the task with
+    `_id` == `taskId` and `userId` == userId.
+    """
+    requesting_user = payload.get("user_id")
+    if requesting_user != userId:
+        raise HTTPException(status_code=403, detail="Forbidden: cannot update other user's tasks")
+
+    try:
+        try:
+            oid = ObjectId(taskId)
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid task id: {taskId}")
+
+        # Check if task exists and belongs to user
+        existing_task = tasks_collection.find_one({"_id": oid, "userId": userId})
+        if not existing_task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        # Prepare update document
+        now = datetime.now(timezone.utc)
+        update_doc = {
+            "title": task_update.title,
+            "description": task_update.description,
+            "todoList": task_update.todoList or [],
+            "written_at": now,
+        }
+
+        # Update the task
+        result = tasks_collection.update_one(
+            {"_id": oid, "userId": userId},
+            {"$set": update_doc}
+        )
+
+        if result.modified_count == 0:
+            # Task was found but not modified (same data)
+            return {
+                "message": "Task already up to date",
+                "taskId": taskId,
+                "modified": False
+            }
+
+        # Fetch and return the updated task
+        updated_task = tasks_collection.find_one({"_id": oid, "userId": userId})
+        updated_task["_id"] = str(updated_task["_id"])
+        updated_task["todoList"] = updated_task.get("todoList", [])
+
+        return {
+            "message": "Task updated successfully",
+            "taskId": taskId,
+            "modified": True,
+            "task": updated_task
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating task: {str(e)}")
+
 
 @app.delete("/delete-user-task")
 def delete_user_task(userId: str, taskId: str, payload: dict = fastapi.Depends(get_current_user)):

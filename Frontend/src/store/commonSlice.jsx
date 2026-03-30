@@ -3,7 +3,7 @@ import { createSlice } from '@reduxjs/toolkit';
 const commonSlice = createSlice({
   name: 'common',
   initialState: {
-    snackbar: { isOpen: false, message: '' },
+    snackbar: { isOpen: false, message: '', severity: 'success' },
     errorModal: { isOpen: false, message: '' },
     newTaskModal: { isOpen: false },
     deleteConfirmModal: {
@@ -12,13 +12,29 @@ const commonSlice = createSlice({
       title: '',
       userId: null,
     },
+    isDeletingTask: false,
   },
   reducers: {
     openSnackbar: (state, action) => {
-      state.snackbar = { isOpen: true, message: action.payload.message };
+      const message = action.payload.message || '';
+      const lowerMessage = message.toLowerCase();
+      const severity =
+        lowerMessage.includes('error') ||
+        lowerMessage.includes('failed') ||
+        lowerMessage.includes('not found') ||
+        lowerMessage.includes('expired') ||
+        lowerMessage.includes('cannot') ||
+        lowerMessage.includes('limit exceeded') ||
+        lowerMessage.includes('invalid') ||
+        lowerMessage.includes('missing') ||
+        lowerMessage.includes('wrong') ||
+        lowerMessage.includes('incorrect')
+          ? 'error'
+          : 'success';
+      state.snackbar = { isOpen: true, message, severity };
     },
     closeSnackbar: (state) => {
-      state.snackbar = { isOpen: false, message: '' };
+      state.snackbar = { isOpen: false, message: '', severity: 'success' };
     },
     openErrorModal: (state, action) => {
       state.errorModal = { isOpen: true, message: action.payload.message };
@@ -47,6 +63,12 @@ const commonSlice = createSlice({
         title: '',
         userId: null,
       };
+    },
+    startTaskDeletion: (state) => {
+      state.isDeletingTask = true;
+    },
+    finishTaskDeletion: (state) => {
+      state.isDeletingTask = false;
     },
   },
 });

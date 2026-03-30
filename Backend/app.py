@@ -63,6 +63,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 10
 
 # Timezone configuration
 IST_TIMEZONE = timezone(timedelta(hours=5, minutes=30))
+UTC_TIMEZONE = timezone.utc
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -86,6 +87,8 @@ class UserTask(BaseModel):
     todoList: list[str] | None = None
     # Accept client-provided Mongo `_id` as the alias "_id" and expose it as `id`
     id: str | None = Field(None, alias="_id")
+    created_at: datetime | None = None
+    modified_at: datetime | None = None
 
 class UserTasksRequest(BaseModel):
     userId: str
@@ -186,9 +189,9 @@ def save_user_tasks(tasks: UserTasksRequest, payload: dict = fastapi.Depends(get
     if not incoming:
         return {"message": "No tasks provided"}
 
-    now = datetime.now(IST_TIMEZONE)
+    now = datetime.now(UTC_TIMEZONE)
 
-    # Separate new tasks (no id) from updates (client provided _id)
+        # Separate new tasks (no id) from updates (client provided _id)
     new_docs = []
     update_ops = []
     for t in incoming:
@@ -202,7 +205,7 @@ def save_user_tasks(tasks: UserTasksRequest, payload: dict = fastapi.Depends(get
                 "title": t.title,
                 "description": t.description,
                 "todoList": t.todoList or [],
-                "written_at": now,
+                "modified_at": now,
             }
             update_ops.append(UpdateOne({"_id": oid, "userId": user_id}, {"$set": update_doc}, upsert=False))
         else:
@@ -212,7 +215,8 @@ def save_user_tasks(tasks: UserTasksRequest, payload: dict = fastapi.Depends(get
                 "title": t.title,
                 "description": t.description,
                 "todoList": t.todoList or [],
-                "written_at": now,
+                "created_at": now,
+                "modified_at": now,
             }
             new_docs.append(doc)
 
@@ -253,11 +257,17 @@ def get_user_tasks(userId: str, payload: dict = fastapi.Depends(get_current_user
         raise HTTPException(status_code=403, detail="Forbidden: cannot access other user's tasks")
 
     try:
-        cursor = tasks_collection.find({"userId": userId}).sort("written_at", pymongo.DESCENDING)
+        # Sort by created_at in ascending order (oldest first), then by _id for consistency
+        cursor = tasks_collection.find({"userId": userId}).sort([("created_at", pymongo.ASCENDING), ("_id", pymongo.ASCENDING)])
         tasks = []
         for t in cursor:
             t["_id"] = str(t["_id"]) if "_id" in t else None
             t["todoList"] = t.get("todoList", [])
+            # Ensure timestamps are timezone-aware (UTC)
+            if "created_at" in t and t["created_at"]:
+                t["created_at"] = t["created_at"].replace(tzinfo=UTC_TIMEZONE)
+            if "modified_at" in t and t["modified_at"]:
+                t["modified_at"] = t["modified_at"].replace(tzinfo=UTC_TIMEZONE)
             tasks.append(t)
 
         return {"userId": userId, "tasks": tasks, "count": len(tasks)}
@@ -286,10 +296,15 @@ def get_user_task(userId: str, taskId: str, payload: dict = fastapi.Depends(get_
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
 
-        # Convert ObjectId to string for JSON serialization
+                # Convert ObjectId to string for JSON serialization
         task["_id"] = str(task["_id"])
         task["todoList"] = task.get("todoList", [])
-        
+        # Ensure timestamps are timezone-aware (UTC)
+        if "created_at" in task and task["created_at"]:
+            task["created_at"] = task["created_at"].replace(tzinfo=UTC_TIMEZONE)
+        if "modified_at" in task and task["modified_at"]:
+            task["modified_at"] = task["modified_at"].replace(tzinfo=UTC_TIMEZONE)
+
         return {"userId": userId, "task": task}
     except HTTPException:
         raise
@@ -324,13 +339,13 @@ def update_user_task(
         if not existing_task:
             raise HTTPException(status_code=404, detail="Task not found")
 
-        # Prepare update document
-        now = datetime.now(IST_TIMEZONE)
+                # Prepare update document
+        now = datetime.now(UTC_TIMEZONE)
         update_doc = {
             "title": task_update.title,
             "description": task_update.description,
             "todoList": task_update.todoList or [],
-            "written_at": now,
+            "modified_at": now,
         }
 
         # Update the task
@@ -347,10 +362,15 @@ def update_user_task(
                 "modified": False
             }
 
-        # Fetch and return the updated task
+                # Fetch and return the updated task
         updated_task = tasks_collection.find_one({"_id": oid, "userId": userId})
         updated_task["_id"] = str(updated_task["_id"])
         updated_task["todoList"] = updated_task.get("todoList", [])
+        updated_task["modified_at"] = now
+        # Ensure timestamps are timezone-aware (UTC)
+        if "created_at" in updated_task and updated_task["created_at"]:
+            updated_task["created_at"] = updated_task["created_at"].replace(tzinfo=UTC_TIMEZONE)
+        updated_task["modified_at"] = now.replace(tzinfo=UTC_TIMEZONE)
 
         return {
             "message": "Task updated successfully",

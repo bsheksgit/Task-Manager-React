@@ -22,6 +22,24 @@ const userSlice = createSlice({
         state.userTasks.tasks[taskIndex].todoList = todoList;
       }
     },
+    updateTaskTitle: (state, action) => {
+      const { taskId, title } = action.payload;
+      const taskIndex = state.userTasks.tasks.findIndex(
+        (task) => task._id === taskId
+      );
+      if (taskIndex !== -1) {
+        state.userTasks.tasks[taskIndex].title = title;
+      }
+    },
+    updateTaskDescription: (state, action) => {
+      const { taskId, description } = action.payload;
+      const taskIndex = state.userTasks.tasks.findIndex(
+        (task) => task._id === taskId
+      );
+      if (taskIndex !== -1) {
+        state.userTasks.tasks[taskIndex].description = description;
+      }
+    },
   },
 });
 

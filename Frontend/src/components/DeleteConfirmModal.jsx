@@ -5,7 +5,6 @@ import { userActions } from '../store/userSlice.jsx';
 import useHTTP from '../hooks/useHTTP.jsx';
 import { apiHelper } from '../services/axiosHelper.jsx';
 import { useQueryClient } from '@tanstack/react-query';
-import { redirect } from 'react-router-dom';
 
 export default function DeleteConfirmModal() {
   const dispatch = useDispatch();
@@ -33,14 +32,26 @@ export default function DeleteConfirmModal() {
 
     try {
       await sendRequest(apiHelper.deleteUserTask, userId, taskId);
+      // Start loading state
+      dispatch(commonActions.startTaskDeletion());
       // Invalidate the tasks query so UserTasks re-fetches the latest list from server.
       queryClient.invalidateQueries({ queryKey: ['userTasks'] });
-      handleClose();
-      window.location.href = `/users/${userId}/tasks`;
+      // Show snackbar first while modal is still open
       dispatch(
         commonActions.openSnackbar({ message: 'Task deleted Successfully!' })
       );
+      // Close the modal after snackbar is shown
+      setTimeout(() => {
+        handleClose();
+      }, 100);
+      // Navigate after snackbar auto-hides (2 seconds + buffer)
+      setTimeout(() => {
+        dispatch(commonActions.finishTaskDeletion());
+        window.location.href = `/users/${userId}/tasks`;
+      }, 2000);
     } catch (err) {
+      // Ensure loading state is cleared on error
+      dispatch(commonActions.finishTaskDeletion());
       // Do NOT remove locally. Show snackbar and display short reason on modal.
       const reason =
         err?.response?.data?.detail || err?.message || 'Server error';

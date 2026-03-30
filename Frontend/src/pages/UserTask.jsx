@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLoaderData, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { commonActions } from '../store/commonSlice';
 import { userActions } from '../store/userSlice';
 import Button from '@mui/material/Button';
@@ -10,20 +11,53 @@ import AddIcon from '@mui/icons-material/Add';
 import CircularProgress from '@mui/material/CircularProgress';
 import { apiHelper } from '../services/axiosHelper';
 
+// Character limits
+const TITLE_LIMIT = 30;
+const DESCRIPTION_LIMIT = 90;
+const TODO_ITEM_LIMIT = 60;
+
+// Helper function to count characters
+function countCharacters(text) {
+  if (!text || !text.trim()) return 0;
+  return text.trim().length;
+}
+
 export default function UserTask() {
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const loaderData = useLoaderData();
   const navigate = useNavigate();
   const { userId, taskId, task, error } = loaderData;
 
   // Get userTasks from Redux store
   const userTasks = useSelector((state) => state.user.userTasks);
+  const isDeletingTask = useSelector((state) => state.common.isDeletingTask);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [taskData, setTaskData] = useState(task || {});
   const [todoItems, setTodoItems] = useState(task?.todoList || []);
   const [newTodo, setNewTodo] = useState('');
+
+  // State for editing mode
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [editingTodoIndex, setEditingTodoIndex] = useState(null);
+
+  // Character count validation
+  const titleCharCount = countCharacters(taskData.title || '');
+  const descriptionCharCount = countCharacters(taskData.description || '');
+  const isTitleOverLimit = titleCharCount > TITLE_LIMIT;
+  const isDescriptionOverLimit = descriptionCharCount > DESCRIPTION_LIMIT;
+
+  // Check if any todo item exceeds limit
+  const isAnyTodoOverLimit = todoItems.some(
+    (item) => countCharacters(item) > TODO_ITEM_LIMIT
+  );
+
+  // Check if save should be disabled
+  const isSaveDisabled =
+    isTitleOverLimit || isDescriptionOverLimit || isAnyTodoOverLimit;
 
   // Update local state when loader data changes
   useEffect(() => {
@@ -55,6 +89,17 @@ export default function UserTask() {
       return;
     }
 
+    // Check character limits before saving
+    if (isSaveDisabled) {
+      dispatch(
+        commonActions.openSnackbar({
+          message:
+            'Cannot save: Character limits exceeded. Please fix before saving.',
+        })
+      );
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -80,6 +125,9 @@ export default function UserTask() {
           message: response.message || 'Task saved successfully',
         })
       );
+
+      // Invalidate TanStack Query to trigger refetch on UserTasks page
+      queryClient.invalidateQueries({ queryKey: ['userTasks', userId] });
     } catch (error) {
       console.error('Error saving task:', error);
 
@@ -97,7 +145,7 @@ export default function UserTask() {
   };
 
   const handleAddTodo = () => {
-    if (newTodo.trim()) {
+    if (newTodo.trim() && countCharacters(newTodo) <= TODO_ITEM_LIMIT) {
       const updatedTodos = [...todoItems, newTodo.trim()];
       setTodoItems(updatedTodos);
       setNewTodo('');
@@ -113,6 +161,68 @@ export default function UserTask() {
     updateReduxTodoList(updatedTodos);
   };
 
+  // Handle title editing
+  const handleTitleEdit = (newTitle) => {
+    if (
+      newTitle.trim() &&
+      newTitle !== taskData.title &&
+      countCharacters(newTitle) <= TITLE_LIMIT
+    ) {
+      const updatedTaskData = { ...taskData, title: newTitle.trim() };
+      setTaskData(updatedTaskData);
+
+      // Update Redux store
+      if (taskId) {
+        dispatch(
+          userActions.updateTaskTitle({
+            taskId,
+            title: newTitle.trim(),
+          })
+        );
+      }
+    }
+    setEditingTitle(false);
+  };
+
+  // Handle description editing
+  const handleDescriptionEdit = (newDescription) => {
+    if (
+      newDescription !== taskData.description &&
+      countCharacters(newDescription) <= DESCRIPTION_LIMIT
+    ) {
+      const updatedTaskData = { ...taskData, description: newDescription };
+      setTaskData(updatedTaskData);
+
+      // Update Redux store
+      if (taskId) {
+        dispatch(
+          userActions.updateTaskDescription({
+            taskId,
+            description: newDescription,
+          })
+        );
+      }
+    }
+    setEditingDescription(false);
+  };
+
+  // Handle todo item editing
+  const handleTodoEdit = (index, newText) => {
+    if (
+      newText.trim() &&
+      newText !== todoItems[index] &&
+      countCharacters(newText) <= TODO_ITEM_LIMIT
+    ) {
+      const updatedTodos = [...todoItems];
+      updatedTodos[index] = newText.trim();
+      setTodoItems(updatedTodos);
+
+      // Update Redux store
+      updateReduxTodoList(updatedTodos);
+    }
+    setEditingTodoIndex(null);
+  };
+
   const handleDeleteTask = () => {
     if (taskId) {
       dispatch(
@@ -122,6 +232,30 @@ export default function UserTask() {
           title: taskData.title || 'this task',
         })
       );
+    }
+  };
+
+  // Helper function to format date for display
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return '';
+
+    // Ensure the date string is treated as UTC
+    // If it doesn't end with 'Z', add it
+    let utcDateString = dateString;
+    if (!utcDateString.endsWith('Z') && !utcDateString.includes('+')) {
+      utcDateString = utcDateString + 'Z';
+    }
+
+    try {
+      const date = new Date(utcDateString);
+      return date.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'full',
+        timeStyle: 'medium',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
+      return 'Invalid date';
     }
   };
 
@@ -151,6 +285,18 @@ export default function UserTask() {
 
   return (
     <div className="bg-[#bec1c3] h-full w-full flex flex-col items-center overflow-x-hidden overflow-visible">
+      {/* Loading overlay for task deletion */}
+      {isDeletingTask && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 p-8 bg-white/90 rounded-lg shadow-xl">
+            <CircularProgress size={60} />
+            <p className="text-xl font-semibold text-gray-800">
+              Task deleted! Redirecting...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="w-full h-16 flex flex-col items-center justify-start mb-4">
         <div className="w-full flex flex-row justify-between items-center">
@@ -176,18 +322,127 @@ export default function UserTask() {
       <div className="w-11/12 max-w-4xl bg-yellow-300/60 backdrop-blur-sm rounded-lg shadow-md p-6 m-5">
         {/* Title */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-[#7b5063da] mb-2">Title</h2>
-          <div className="text-gray-800 text-lg">{taskData.title}</div>
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-2xl font-bold text-[#7b5063da]">Title</h2>
+            {editingTitle && (
+              <div
+                className={`text-sm ${isTitleOverLimit ? 'text-red-600' : 'text-gray-600'}`}
+              >
+                {titleCharCount}/{TITLE_LIMIT} characters
+                {isTitleOverLimit && ' (Limit exceeded)'}
+              </div>
+            )}
+          </div>
+          {editingTitle ? (
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={taskData.title || ''}
+                onChange={(e) =>
+                  setTaskData({ ...taskData, title: e.target.value })
+                }
+                onKeyPress={(e) =>
+                  e.key === 'Enter' &&
+                  !isTitleOverLimit &&
+                  handleTitleEdit(e.target.value)
+                }
+                onBlur={() =>
+                  !isTitleOverLimit && handleTitleEdit(taskData.title)
+                }
+                className={`flex-1 p-2 border rounded text-gray-800 text-lg ${isTitleOverLimit ? 'border-red-500' : ''}`}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() =>
+                    !isTitleOverLimit && handleTitleEdit(taskData.title)
+                  }
+                  className={`px-3 py-2 rounded hover:cursor-pointer ${isTitleOverLimit ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                  disabled={isTitleOverLimit}
+                >
+                  Done
+                </button>
+                <button
+                  onClick={() => setEditingTitle(false)}
+                  className="px-3 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 hover:cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="text-gray-800 text-lg hover:bg-white/50 p-2 rounded hover:cursor-pointer"
+              onClick={() => setEditingTitle(true)}
+            >
+              {taskData.title || 'Click to add title'}
+            </div>
+          )}
         </div>
 
         {/* Description */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-[#7b5063da] mb-2">
-            Description
-          </h2>
-          <div className="text-gray-800 text-lg whitespace-pre-wrap">
-            {taskData.description}
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-2xl font-bold text-[#7b5063da]">Description</h2>
+            {editingDescription && (
+              <div
+                className={`text-sm ${isDescriptionOverLimit ? 'text-red-600' : 'text-gray-600'}`}
+              >
+                {descriptionCharCount}/{DESCRIPTION_LIMIT} characters
+                {isDescriptionOverLimit && ' (Limit exceeded)'}
+              </div>
+            )}
           </div>
+          {editingDescription ? (
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={taskData.description || ''}
+                onChange={(e) =>
+                  setTaskData({ ...taskData, description: e.target.value })
+                }
+                onKeyPress={(e) => {
+                  if (
+                    e.key === 'Enter' &&
+                    e.ctrlKey &&
+                    !isDescriptionOverLimit
+                  ) {
+                    handleDescriptionEdit(e.target.value);
+                  }
+                }}
+                onBlur={() =>
+                  !isDescriptionOverLimit &&
+                  handleDescriptionEdit(taskData.description)
+                }
+                className={`flex-1 p-2 border rounded text-gray-800 text-lg h-24 ${isDescriptionOverLimit ? 'border-red-500' : ''}`}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() =>
+                    !isDescriptionOverLimit &&
+                    handleDescriptionEdit(taskData.description)
+                  }
+                  className={`px-3 py-2 rounded hover:cursor-pointer ${isDescriptionOverLimit ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                  disabled={isDescriptionOverLimit}
+                >
+                  Done (Ctrl+Enter)
+                </button>
+                <button
+                  onClick={() => setEditingDescription(false)}
+                  className="px-3 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 hover:cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="text-gray-800 text-lg whitespace-pre-wrap hover:bg-white/50 p-2 rounded hover:cursor-pointer min-h-12"
+              onClick={() => setEditingDescription(true)}
+            >
+              {taskData.description || 'Click to add description'}
+            </div>
+          )}
         </div>
 
         {/* Todo List */}
@@ -212,13 +467,71 @@ export default function UserTask() {
                   className="flex items-center justify-between bg-white/50 rounded p-3 
                   hover:bg-white/70 hover:cursor-pointer "
                 >
-                  <span className="text-gray-800">{item}</span>
-                  <button
-                    onClick={() => handleDeleteTodo(index)}
-                    className="text-red-600 hover:text-red-800 hover:cursor-pointer"
-                  >
-                    Remove
-                  </button>
+                  {editingTodoIndex === index ? (
+                    <div className="flex-1 flex flex-col gap-2">
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          value={item}
+                          onChange={(e) => {
+                            const updatedTodos = [...todoItems];
+                            updatedTodos[index] = e.target.value;
+                            setTodoItems(updatedTodos);
+                          }}
+                          onKeyPress={(e) =>
+                            e.key === 'Enter' &&
+                            countCharacters(e.target.value) <=
+                              TODO_ITEM_LIMIT &&
+                            handleTodoEdit(index, e.target.value)
+                          }
+                          onBlur={() =>
+                            countCharacters(item) <= TODO_ITEM_LIMIT &&
+                            handleTodoEdit(index, item)
+                          }
+                          className={`flex-1 p-2 border rounded text-gray-800 ${countCharacters(item) > TODO_ITEM_LIMIT ? 'border-red-500' : ''}`}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() =>
+                            countCharacters(item) <= TODO_ITEM_LIMIT &&
+                            handleTodoEdit(index, item)
+                          }
+                          className={`px-3 py-1 rounded hover:cursor-pointer ${countCharacters(item) > TODO_ITEM_LIMIT ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                          disabled={countCharacters(item) > TODO_ITEM_LIMIT}
+                        >
+                          Done
+                        </button>
+                        <button
+                          onClick={() => setEditingTodoIndex(null)}
+                          className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 hover:cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <div
+                        className={`text-xs ${countCharacters(item) > TODO_ITEM_LIMIT ? 'text-red-600' : 'text-gray-600'}`}
+                      >
+                        {countCharacters(item)}/{TODO_ITEM_LIMIT} characters
+                        {countCharacters(item) > TODO_ITEM_LIMIT &&
+                          ' (Limit exceeded)'}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span
+                        className="text-gray-800 flex-1 hover:cursor-pointer"
+                        onClick={() => setEditingTodoIndex(index)}
+                      >
+                        {item}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteTodo(index)}
+                        className="text-red-600 hover:text-red-800 hover:cursor-pointer ml-2"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -236,47 +549,72 @@ export default function UserTask() {
 
           {/* Add Todo Input */}
           {newTodo !== '' && (
-            <div className="mt-4 flex gap-2">
-              <input
-                type="text"
-                value={newTodo}
-                onChange={(e) => setNewTodo(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddTodo()}
-                className="flex-1 p-2 border rounded"
-                placeholder="Enter todo item..."
-                autoFocus
-              />
-              <button
-                onClick={handleAddTodo}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hover:cursor-pointer"
+            <div className="mt-4">
+              <div className="flex gap-2 mb-1">
+                <input
+                  type="text"
+                  value={newTodo}
+                  onChange={(e) => setNewTodo(e.target.value)}
+                  onKeyPress={(e) =>
+                    e.key === 'Enter' &&
+                    countCharacters(newTodo) <= TODO_ITEM_LIMIT &&
+                    handleAddTodo()
+                  }
+                  className={`flex-1 p-2 border rounded ${countCharacters(newTodo) > TODO_ITEM_LIMIT ? 'border-red-500' : ''}`}
+                  placeholder="Enter todo item..."
+                  autoFocus
+                />
+                <button
+                  onClick={handleAddTodo}
+                  className={`px-4 py-2 rounded hover:cursor-pointer ${countCharacters(newTodo) > TODO_ITEM_LIMIT ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                  disabled={countCharacters(newTodo) > TODO_ITEM_LIMIT}
+                >
+                  Add
+                </button>
+                <button
+                  onClick={() => setNewTodo('')}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 hover:cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+              <div
+                className={`text-xs ${countCharacters(newTodo) > TODO_ITEM_LIMIT ? 'text-red-600' : 'text-gray-600'}`}
               >
-                Add
-              </button>
-              <button
-                onClick={() => setNewTodo('')}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 hover:cursor-pointer"
-              >
-                Cancel
-              </button>
+                {countCharacters(newTodo)}/{TODO_ITEM_LIMIT} characters
+                {countCharacters(newTodo) > TODO_ITEM_LIMIT &&
+                  ' (Limit exceeded)'}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Last Modified Date */}
-        {taskData.written_at && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-[#7b5063da] mb-2">
-              Last Modified
-            </h2>
-            <div className="text-gray-600">
-              {new Date(taskData.written_at).toLocaleString('en-IN', {
-                timeZone: 'Asia/Kolkata',
-                dateStyle: 'full',
-                timeStyle: 'medium',
-              })}
+        {/* Timestamps */}
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Created Date */}
+          {taskData.created_at && (
+            <div>
+              <h2 className="text-2xl font-bold text-[#7b5063da] mb-2">
+                Created
+              </h2>
+              <div className="text-gray-600">
+                {formatDateForDisplay(taskData.created_at)}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Last Modified Date */}
+          {taskData.modified_at && (
+            <div>
+              <h2 className="text-2xl font-bold text-[#7b5063da] mb-2">
+                Last Modified
+              </h2>
+              <div className="text-gray-600">
+                {formatDateForDisplay(taskData.modified_at)}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Action Buttons */}
         <div className="flex flex-row justify-end items-center gap-4 pt-6 border-t">
@@ -300,7 +638,7 @@ export default function UserTask() {
               )
             }
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || isSaveDisabled}
           >
             {saving ? 'Saving...' : 'Save'}
           </Button>

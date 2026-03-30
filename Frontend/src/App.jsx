@@ -34,18 +34,11 @@ function App() {
         onClose={() => dispatch(commonActions.closeSnackbar())}
         message={snackbar.message}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ zIndex: 9999 }}
       >
         <Alert
           onClose={() => dispatch(commonActions.closeSnackbar())}
-          severity={
-            snackbar.message.toLowerCase().includes('error') ||
-            snackbar.message.toLowerCase().includes('failed') ||
-            snackbar.message === '' ||
-            snackbar.message.toLowerCase().includes('not found') ||
-            snackbar.message.toLowerCase().includes('expired')
-              ? 'error'
-              : 'success'
-          }
+          severity={snackbar.severity}
           variant="filled"
           sx={{ width: '100%' }}
         >

@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import Welcome from './pages/Welcome';
 import UserTasks from './pages/UserTasks';
 import UserTask from './pages/UserTask';
+import UserProfile from './pages/UserProfile';
 import Logout from './pages/Logout';
 import { loader as userTasksLoader } from './pages/UserTasksLoader';
 import { loader as userTaskLoader } from './pages/UserTaskLoader';
@@ -31,6 +32,14 @@ const router = createBrowserRouter([
       </RequireAuth>
     ),
     loader: userTaskLoader,
+  },
+  {
+    path: '/users/:userId/profile',
+    element: (
+      <RequireAuth>
+        <UserProfile />
+      </RequireAuth>
+    ),
   },
 ]);
 

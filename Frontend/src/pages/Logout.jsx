@@ -25,8 +25,8 @@ export default function Logout() {
     dispatch(
       commonActions.openSnackbar({
         message: isSessionExpired
-          ? 'Session Expired. Logging out...'
-          : 'Session Expired! Please log in again.',
+          ? 'Session Expired! Please log in again.'
+          : 'You have been logged out successfully.',
       })
     );
 

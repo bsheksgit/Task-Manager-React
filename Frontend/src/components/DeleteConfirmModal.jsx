@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { commonActions } from '../store/commonSlice.jsx';
 import { userActions } from '../store/userSlice.jsx';
-import useHTTP from '../hooks/useHTTP.jsx';
-import { apiHelper } from '../services/axiosHelper.jsx';
+import { useDeleteTask } from '../hooks/useDeleteTask.jsx';
 import { useQueryClient } from '@tanstack/react-query';
 
 export default function DeleteConfirmModal() {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
-  const { loading, error, sendRequest } = useHTTP();
+  const {
+    mutate: deleteTask,
+    isPending: isDeleting,
+    error: deleteError,
+  } = useDeleteTask();
   const modal = useSelector((state) => state.common.deleteConfirmModal);
-  const userTasks = useSelector((state) => state.user.userTasks);
   const loginUser = useSelector((state) => state.loginModal?.auth?.user);
   const [failedReason, setFailedReason] = useState(null);
 
@@ -23,46 +25,37 @@ export default function DeleteConfirmModal() {
     setFailedReason(null);
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     // determine userId from redux or localStorage
     const userId =
       loginUser?.user_id ||
       JSON.parse(localStorage.getItem('user') || '{}')?.user_id ||
       null;
 
-    try {
-      await sendRequest(apiHelper.deleteUserTask, userId, taskId);
-      // Start loading state
-      dispatch(commonActions.startTaskDeletion());
-      // Invalidate the tasks query so UserTasks re-fetches the latest list from server.
-      queryClient.invalidateQueries({ queryKey: ['userTasks'] });
-      // Show snackbar first while modal is still open
-      dispatch(
-        commonActions.openSnackbar({ message: 'Task deleted Successfully!' })
-      );
-      // Close the modal after snackbar is shown
-      setTimeout(() => {
-        handleClose();
-      }, 100);
-      // Navigate after snackbar auto-hides (2 seconds + buffer)
-      setTimeout(() => {
-        dispatch(commonActions.finishTaskDeletion());
-        window.location.href = `/users/${userId}/tasks`;
-      }, 2000);
-    } catch (err) {
-      // Ensure loading state is cleared on error
-      dispatch(commonActions.finishTaskDeletion());
-      // Do NOT remove locally. Show snackbar and display short reason on modal.
-      const reason =
-        err?.response?.data?.detail || err?.message || 'Server error';
-      const short =
-        typeof reason === 'string' ? reason.slice(0, 160) : String(reason);
-      setFailedReason(short);
-      dispatch(
-        commonActions.openSnackbar({ message: 'Failed to delete task.' })
-      );
-      // leave modal open and show OK button
+    if (!userId || !taskId) {
+      setFailedReason('Missing user ID or task ID');
+      return;
     }
+
+    // Trigger optimistic delete mutation
+    deleteTask(
+      { userId, taskId },
+      {
+        onSuccess: () => {
+          // Close modal immediately after mutation starts (UI already updated)
+          handleClose();
+        },
+        onError: (err) => {
+          // Error handling is done in the mutation's onError callback
+          // Show error in modal for immediate feedback
+          const reason =
+            err?.response?.data?.detail || err?.message || 'Server error';
+          const short =
+            typeof reason === 'string' ? reason.slice(0, 160) : String(reason);
+          setFailedReason(short);
+        },
+      }
+    );
   };
 
   if (!isOpen) return null;
@@ -99,9 +92,9 @@ export default function DeleteConfirmModal() {
               <button
                 className="px-4 py-2 bg-red-600 text-white rounded hover:-translate-y-1 hover:scale-105 hover:cursor-pointer"
                 onClick={handleConfirm}
-                disabled={loading}
+                disabled={isDeleting}
               >
-                {loading ? 'Deleting...' : 'Yes'}
+                {isDeleting ? 'Deleting...' : 'Yes'}
               </button>
             </>
           ) : (

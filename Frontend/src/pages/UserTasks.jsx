@@ -14,23 +14,10 @@ import { useQuery } from '@tanstack/react-query';
 export default function UserTasks() {
   const dispatch = useDispatch();
   const userTasks = useSelector((state) => state.user.userTasks);
+  const userDetails = useSelector((state) => state.user.userDetails);
   const navigate = useNavigate();
-  // Prefer stored user info in localStorage for display
-  let storedFirstName = 'New User';
-  try {
-    const raw = localStorage.getItem('user');
-    if (raw) {
-      const u = JSON.parse(raw);
-      if (u && u.firstName) storedFirstName = u.firstName;
-    } else {
-      const fname =
-        localStorage.getItem('firstName') ||
-        localStorage.getItem('userFirstName');
-      if (fname) storedFirstName = fname;
-    }
-  } catch (e) {
-    // ignore parse errors, fall back to default
-  }
+  // Use Redux store for user info
+  const storedFirstName = userDetails.firstName || 'New User';
 
   const loaderData = useLoaderData();
   const [loading, setLoading] = useState(true);
@@ -116,7 +103,10 @@ export default function UserTasks() {
             <Link to="/subscribe" className="text-indigo-600 hover:underline">
               Subscribe
             </Link>
-            <Link to="/profile" className="text-indigo-600 hover:underline">
+            <Link
+              to={`/users/${userId}/profile`}
+              className="text-indigo-600 hover:underline"
+            >
               Manage Profile
             </Link>
             <Link to="/logout" className="text-red-600 hover:underline">

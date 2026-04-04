@@ -39,6 +39,9 @@ export default function UserTask() {
   const [todoItems, setTodoItems] = useState(task?.todoList || []);
   const [newTodo, setNewTodo] = useState('');
 
+  // State for adding new todo mode
+  const [isAddingNewTodo, setIsAddingNewTodo] = useState(false);
+
   // State for editing mode
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
@@ -149,6 +152,7 @@ export default function UserTask() {
       const updatedTodos = [...todoItems, newTodo.trim()];
       setTodoItems(updatedTodos);
       setNewTodo('');
+      setIsAddingNewTodo(false);
       // Update Redux store
       updateReduxTodoList(updatedTodos);
     }
@@ -451,7 +455,10 @@ export default function UserTask() {
             <h2 className="text-2xl font-bold text-[#7b5063da]">Todo List</h2>
             {todoItems.length != 0 && (
               <button
-                onClick={() => setNewTodo('New todo item...')}
+                onClick={() => {
+                  setIsAddingNewTodo(true);
+                  setNewTodo('');
+                }}
                 className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 hover:cursor-pointer"
               >
                 <AddIcon /> Add Todo
@@ -483,10 +490,6 @@ export default function UserTask() {
                             countCharacters(e.target.value) <=
                               TODO_ITEM_LIMIT &&
                             handleTodoEdit(index, e.target.value)
-                          }
-                          onBlur={() =>
-                            countCharacters(item) <= TODO_ITEM_LIMIT &&
-                            handleTodoEdit(index, item)
                           }
                           className={`flex-1 p-2 border rounded text-gray-800 ${countCharacters(item) > TODO_ITEM_LIMIT ? 'border-red-500' : ''}`}
                           autoFocus
@@ -535,20 +538,23 @@ export default function UserTask() {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : newTodo === '' && !isAddingNewTodo ? (
             <div className="text-center py-6 bg-white/30 rounded">
               <p className="text-gray-600 mb-4">No todo items yet</p>
               <button
-                onClick={() => setNewTodo('New todo item...')}
+                onClick={() => {
+                  setIsAddingNewTodo(true);
+                  setNewTodo('');
+                }}
                 className="flex items-center gap-2 mx-auto text-indigo-600 hover:text-indigo-800 hover:cursor-pointer"
               >
                 <AddIcon /> Add your first todo item
               </button>
             </div>
-          )}
+          ) : null}
 
           {/* Add Todo Input */}
-          {newTodo !== '' && (
+          {isAddingNewTodo && (
             <div className="mt-4">
               <div className="flex gap-2 mb-1">
                 <input
@@ -572,7 +578,10 @@ export default function UserTask() {
                   Add
                 </button>
                 <button
-                  onClick={() => setNewTodo('')}
+                  onClick={() => {
+                    setIsAddingNewTodo(false);
+                    setNewTodo('');
+                  }}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 hover:cursor-pointer"
                 >
                   Cancel

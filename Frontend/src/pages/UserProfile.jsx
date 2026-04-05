@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import Button from '@mui/material/Button';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 import { commonActions } from '../store/commonSlice';
 import { userActions } from '../store/userSlice';
+import {
+  useUserProfile,
+  useUpdateUserProfile,
+} from '../hooks/useUserProfile.jsx';
+import { apiHelper } from '../services/axiosHelper.jsx';
 
 // Character limits for profile fields
 const FIRST_NAME_LIMIT = 30;
@@ -41,11 +47,28 @@ function formatDateForDisplay(dateString) {
 
 export default function UserProfile() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const { userId } = useParams();
+
+  // TanStack Query hooks for profile data
+  const {
+    data: profileData,
+    isLoading: isLoadingProfile,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useUserProfile(userId);
+
+  // Mutation hook for updating profile with optimistic updates
+  const updateProfileMutation = useUpdateUserProfile(userId);
 
   // Get user info from Redux store
   const userDetails = useSelector((state) => state.user.userDetails);
+
+  // Effect to populate Redux store with profile data from backend on mount
+  useEffect(() => {
+    if (profileData?.profile) {
+      dispatch(userActions.setUserDetails(profileData.profile));
+    }
+  }, [profileData, dispatch]);
 
   // State for editing mode
   const [editingFirstName, setEditingFirstName] = useState(false);
@@ -56,9 +79,10 @@ export default function UserProfile() {
   const [editingPhone, setEditingPhone] = useState(false);
   const [editingDateOfBirth, setEditingDateOfBirth] = useState(false);
 
-  // State for profile picture (placeholder)
-  const [profilePicture, setProfilePicture] = useState(null);
-  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  // State for profile picture upload
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [picturePreview, setPicturePreview] = useState(null); // object URL for preview
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Character count validation
   const firstNameCharCount = countCharacters(userDetails.firstName || '');
@@ -85,8 +109,37 @@ export default function UserProfile() {
     isPhoneOverLimit;
 
   // Simulate loading state
-  const [saving, setSaving] = useState(false);
+  const [saving, _setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Show loading state while fetching profile data
+  if (isLoadingProfile) {
+    return (
+      <div className="bg-[#bec1c3] h-full w-full flex flex-col items-center justify-center">
+        <CircularProgress size={60} />
+        <p className="mt-4 text-lg text-gray-700">Loading profile data...</p>
+      </div>
+    );
+  }
+
+  // Show error state if profile fetch fails
+  if (profileError) {
+    return (
+      <div className="bg-[#bec1c3] h-full w-full flex flex-col items-center justify-center">
+        <Alert severity="error" className="max-w-md">
+          Failed to load profile data: {profileError.message}
+        </Alert>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => refetchProfile()}
+          className="mt-4"
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   // Handle field edit functions
   const handleFirstNameEdit = (newFirstName) => {
@@ -161,31 +214,199 @@ export default function UserProfile() {
     setEditingDateOfBirth(false);
   };
 
-  // Handle profile picture upload (non-functional for now)
-  const handleProfilePictureChange = (e) => {
-    // Non-functional - just show a placeholder message
-    dispatch(
-      commonActions.openSnackbar({
-        message: 'Profile picture upload functionality coming soon!',
-        severity: 'info',
-      })
-    );
-    e.target.value = ''; // Reset file input
-  };
+  // Handle profile picture upload
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // Handle save (non-functional)
-  const handleSave = () => {
-    setSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      setSaving(false);
+    // Client-side validation
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
       dispatch(
         commonActions.openSnackbar({
-          message: 'Profile save functionality coming soon!',
+          message: 'Invalid file type. Please upload JPG, PNG, or WebP image.',
+          severity: 'error',
+        })
+      );
+      e.target.value = '';
+      return;
+    }
+
+    // Check file size (<5MB)
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > MAX_SIZE) {
+      dispatch(
+        commonActions.openSnackbar({
+          message: 'File size exceeds 5MB limit.',
+          severity: 'error',
+        })
+      );
+      e.target.value = '';
+      return;
+    }
+
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setPicturePreview(previewUrl);
+
+    // Set uploading state
+    setUploadingPicture(true);
+
+    try {
+      // Prepare form data
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Upload to backend
+      const response = await apiHelper.uploadProfilePicture(userId, formData);
+
+      // Update Redux store with new profile picture
+      if (response.profilePicture) {
+        dispatch(
+          userActions.updateUserDetails({
+            profilePicture: response.profilePicture,
+          })
+        );
+      }
+
+      // Show success message
+      dispatch(
+        commonActions.openSnackbar({
+          message: response.message || 'Profile picture uploaded successfully!',
+          severity: 'success',
+        })
+      );
+
+      // Refetch profile data to ensure consistency
+      refetchProfile();
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+
+      // Clear preview on error
+      setPicturePreview(null);
+
+      // Show error message
+      dispatch(
+        commonActions.openSnackbar({
+          message:
+            error.response?.data?.detail ||
+            'Failed to upload profile picture. Please try again.',
+          severity: 'error',
+        })
+      );
+    } finally {
+      setUploadingPicture(false);
+      // Clean up object URL
+      URL.revokeObjectURL(previewUrl);
+      e.target.value = '';
+    }
+  };
+
+  // Handle delete profile picture
+  const handleDeleteProfilePicture = async () => {
+    if (!userDetails.profilePicture && !picturePreview) {
+      dispatch(
+        commonActions.openSnackbar({
+          message: 'No profile picture to delete.',
           severity: 'info',
         })
       );
-    }, 1000);
+      return;
+    }
+
+    // Show confirmation dialog
+    if (
+      !window.confirm('Are you sure you want to delete your profile picture?')
+    ) {
+      return;
+    }
+
+    setUploadingPicture(true);
+    try {
+      const response = await apiHelper.deleteProfilePicture(userId);
+
+      // Update Redux store - remove profile picture
+      dispatch(
+        userActions.updateUserDetails({
+          profilePicture: null,
+        })
+      );
+
+      // Clear preview
+      setPicturePreview(null);
+
+      // Show success message
+      dispatch(
+        commonActions.openSnackbar({
+          message: response.message || 'Profile picture deleted successfully!',
+          severity: 'success',
+        })
+      );
+
+      // Refetch profile data to ensure consistency
+      refetchProfile();
+    } catch (error) {
+      console.error('Error deleting profile picture:', error);
+
+      // Show error message
+      dispatch(
+        commonActions.openSnackbar({
+          message:
+            error.response?.data?.detail ||
+            'Failed to delete profile picture. Please try again.',
+          severity: 'error',
+        })
+      );
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
+
+  // Handle save with TanStack Query mutation and optimistic updates
+  const handleSave = () => {
+    if (isSaveDisabled) {
+      dispatch(
+        commonActions.openSnackbar({
+          message: 'Cannot save: Some fields exceed character limits',
+          severity: 'error',
+        })
+      );
+      return;
+    }
+
+    // Prepare profile data to save (exclude email as it's not editable)
+    const profileData = {
+      firstName: userDetails.firstName || '',
+      lastName: userDetails.lastName || '',
+      dateOfBirth: userDetails.dateOfBirth || '',
+      profession: userDetails.profession || '',
+      bio: userDetails.bio || '',
+      location: userDetails.location || '',
+      phone: userDetails.phone || '',
+    };
+
+    // Use TanStack Query mutation with optimistic updates
+    updateProfileMutation.mutate(profileData, {
+      onSuccess: (response) => {
+        dispatch(
+          commonActions.openSnackbar({
+            message: response.message || 'Profile saved successfully!',
+            severity: 'success',
+          })
+        );
+      },
+      onError: (error) => {
+        console.error('Failed to save profile:', error);
+        dispatch(
+          commonActions.openSnackbar({
+            message:
+              error.response?.data?.detail ||
+              'Failed to save profile. Please try again.',
+            severity: 'error',
+          })
+        );
+      },
+    });
   };
 
   // Handle delete account (non-functional)
@@ -236,16 +457,25 @@ export default function UserProfile() {
                 Profile Picture
               </h2>
               <div className="flex flex-col items-center">
-                <div className="w-48 h-48 bg-gray-300 rounded-full flex items-center justify-center mb-4 overflow-hidden">
-                  {profilePicture ? (
+                <div className="w-48 h-48 bg-gray-300 rounded-full flex items-center justify-center mb-4 overflow-hidden relative">
+                  {picturePreview || userDetails.profilePicture ? (
                     <img
-                      src={profilePicture}
+                      src={picturePreview || userDetails.profilePicture}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="text-6xl text-gray-600">
                       {userDetails.firstName?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  {uploadingPicture && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <CircularProgress
+                        size={40}
+                        color="inherit"
+                        className="text-white"
+                      />
                     </div>
                   )}
                 </div>
@@ -272,6 +502,15 @@ export default function UserProfile() {
                 <p className="text-xs text-gray-500 mt-2">
                   Max size: 5MB • JPG, PNG, WebP
                 </p>
+                {(picturePreview || userDetails.profilePicture) && (
+                  <button
+                    onClick={handleDeleteProfilePicture}
+                    disabled={uploadingPicture}
+                    className={`mt-3 px-4 py-2 rounded hover:cursor-pointer ${uploadingPicture ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                  >
+                    {uploadingPicture ? 'Processing...' : 'Delete Picture'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

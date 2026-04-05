@@ -1,7 +1,10 @@
 """Task Manager Backend Application."""
 import os
 import time
+import base64
+import io
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 import fastapi
@@ -14,7 +17,8 @@ from passlib.context import CryptContext
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError, ExpiredSignatureError
 from pydantic import Field
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile, File
+from PIL import Image
 
 app = fastapi.FastAPI()
 
@@ -76,10 +80,26 @@ class User(BaseModel):
     lastName: str | None = None
     email: EmailStr
     password: str
+    dateOfBirth: str | None = None  # Store as ISO string "YYYY-MM-DD"
+    profession: str | None = None
+    bio: str | None = None
+    location: str | None = None
+    phone: str | None = None
+    profilePicture: str | None = None  # Base64 encoded image
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+class UserProfileUpdate(BaseModel):
+    firstName: str | None = None
+    lastName: str | None = None
+    dateOfBirth: str | None = None
+    profession: str | None = None
+    bio: str | None = None
+    location: str | None = None
+    phone: str | None = None
+    profilePicture: str | None = None
 
 class UserTask(BaseModel):
     title: str
@@ -164,11 +184,20 @@ def login(request: LoginRequest):
         expires_delta=access_token_expires
     )
 
+    # Return profile data for frontend Redux store
     return {
         "message": f"Login successful for user {user['firstName']}",
         "user_id": str(user["_id"]),
         "token": access_token,
-        "firstName": user["firstName"],
+        "firstName": user.get("firstName", ""),
+        "lastName": user.get("lastName", ""),
+        "email": user.get("email", ""),
+        "dateOfBirth": user.get("dateOfBirth", ""),
+        "profession": user.get("profession", ""),
+        "bio": user.get("bio", ""),
+        "location": user.get("location", ""),
+        "phone": user.get("phone", ""),
+        "profilePicture": user.get("profilePicture", ""),
         "token_type": "bearer"
     }
 
@@ -411,8 +440,274 @@ def delete_user_task(userId: str, taskId: str, payload: dict = fastapi.Depends(g
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting task: {str(e)}")
 
+
+@app.get("/users/{userId}/profile")
+def get_user_profile(userId: str, payload: dict = fastapi.Depends(get_current_user)):
+    """Fetch user profile data. Requires Authorization header.
+    
+    Validates that the requester matches `userId` and returns the user's
+    profile data (excluding password).
+    """
+    requesting_user = payload.get("user_id")
+    if requesting_user != userId:
+        raise HTTPException(status_code=403, detail="Forbidden: cannot access other user's profile")
+    
+    try:
+        try:
+            oid = ObjectId(userId)
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid user id: {userId}")
+        
+        user = users_collection.find_one({"_id": oid})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Remove password from response
+        user.pop("password", None)
+        # Convert ObjectId to string
+        user["_id"] = str(user["_id"])
+        
+        return {"userId": userId, "profile": user}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching profile: {str(e)}")
+
+
+@app.put("/users/{userId}/profile")
+def update_user_profile(
+    userId: str,
+    profile_update: UserProfileUpdate,
+    payload: dict = fastapi.Depends(get_current_user)
+):
+    """Update user profile data. Requires Authorization header.
+    
+    Validates that the requester matches `userId` and updates the user's
+    profile with partial updates.
+    """
+    requesting_user = payload.get("user_id")
+    if requesting_user != userId:
+        raise HTTPException(status_code=403, detail="Forbidden: cannot update other user's profile")
+    
+    try:
+        try:
+            oid = ObjectId(userId)
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid user id: {userId}")
+        
+        # Check if user exists
+        user = users_collection.find_one({"_id": oid})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Prepare update document - only include fields that are not None
+        update_doc = {}
+        for field, value in profile_update.dict(exclude_unset=True).items():
+            if value is not None:
+                update_doc[field] = value
+        
+        if not update_doc:
+            return {"message": "No fields to update", "userId": userId}
+        
+        # Update the user profile
+        result = users_collection.update_one(
+            {"_id": oid},
+            {"$set": update_doc}
+        )
+        
+        if result.modified_count == 0:
+            # User was found but not modified (same data)
+            return {
+                "message": "Profile already up to date",
+                "userId": userId,
+                "modified": False
+            }
+        
+        # Fetch and return the updated user (excluding password)
+        updated_user = users_collection.find_one({"_id": oid})
+        updated_user.pop("password", None)
+        updated_user["_id"] = str(updated_user["_id"])
+        
+        return {
+            "message": "Profile updated successfully",
+            "userId": userId,
+            "modified": True,
+            "profile": updated_user
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating profile: {str(e)}")
+
+
+def process_profile_image(file_bytes: bytes) -> str:
+    """Process uploaded image: crop to square, resize to 192x192, convert to JPEG 80% quality."""
+    try:
+        # Open image from bytes
+        image = Image.open(io.BytesIO(file_bytes))
+        
+        # Convert to RGB if necessary (for PNG with transparency)
+        if image.mode in ('RGBA', 'LA', 'P'):
+            # Create white background
+            background = Image.new('RGB', image.size, (255, 255, 255))
+            if image.mode == 'P':
+                image = image.convert('RGBA')
+            background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+            image = background
+        elif image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Center crop to square aspect ratio
+        width, height = image.size
+        min_dim = min(width, height)
+        left = (width - min_dim) // 2
+        top = (height - min_dim) // 2
+        right = left + min_dim
+        bottom = top + min_dim
+        image = image.crop((left, top, right, bottom))
+        
+        # Resize to 192x192
+        image = image.resize((192, 192), Image.Resampling.LANCZOS)
+        
+        # Convert to JPEG with 80% quality
+        output_buffer = io.BytesIO()
+        image.save(output_buffer, format='JPEG', quality=80, optimize=True)
+        jpeg_bytes = output_buffer.getvalue()
+        
+        # Convert to Base64 with data URL prefix
+        base64_data = base64.b64encode(jpeg_bytes).decode('utf-8')
+        return f"data:image/jpeg;base64,{base64_data}"
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Image processing failed: {str(e)}")
+
+
+@app.post("/users/{userId}/profile/picture")
+async def upload_profile_picture(
+    userId: str,
+    file: UploadFile = File(...),
+    payload: dict = fastapi.Depends(get_current_user)
+):
+    """Upload and process profile picture. Requires Authorization header.
+    
+    Validates that the requester matches `userId`, processes the image,
+    and updates the user's profilePicture field.
+    """
+    requesting_user = payload.get("user_id")
+    if requesting_user != userId:
+        raise HTTPException(status_code=403, detail="Forbidden: cannot update other user's profile")
+    
+    # Validate file size (max 5MB)
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+    file_contents = await file.read()
+    if len(file_contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File must be less than 5MB")
+    
+    # Validate file type
+    allowed_mime_types = ['image/jpeg', 'image/png', 'image/webp']
+    if file.content_type not in allowed_mime_types:
+        raise HTTPException(status_code=400, detail="Only JPG, PNG, or WebP images allowed")
+    
+    try:
+        try:
+            oid = ObjectId(userId)
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid user id: {userId}")
+        
+        # Check if user exists
+        user = users_collection.find_one({"_id": oid})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Process image
+        profile_picture_base64 = process_profile_image(file_contents)
+        
+        # Update user profile with new picture
+        result = users_collection.update_one(
+            {"_id": oid},
+            {"$set": {"profilePicture": profile_picture_base64}}
+        )
+        
+        if result.modified_count == 0:
+            # User was found but picture already same (unlikely with new upload)
+            return {
+                "message": "Profile picture already up to date",
+                "userId": userId,
+                "modified": False
+            }
+        
+        # Fetch and return the updated user (excluding password)
+        updated_user = users_collection.find_one({"_id": oid})
+        updated_user.pop("password", None)
+        updated_user["_id"] = str(updated_user["_id"])
+        
+        return {
+            "message": "Profile picture uploaded successfully",
+            "userId": userId,
+            "modified": True,
+            "profile": updated_user
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error uploading profile picture: {str(e)}")
+
+
+@app.delete("/users/{userId}/profile/picture")
+def delete_profile_picture(
+    userId: str,
+    payload: dict = fastapi.Depends(get_current_user)
+):
+    """Delete user's profile picture. Requires Authorization header.
+    
+    Validates that the requester matches `userId` and removes the
+    profilePicture field from the user document.
+    """
+    requesting_user = payload.get("user_id")
+    if requesting_user != userId:
+        raise HTTPException(status_code=403, detail="Forbidden: cannot update other user's profile")
+    
+    try:
+        try:
+            oid = ObjectId(userId)
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid user id: {userId}")
+        
+        # Check if user exists
+        user = users_collection.find_one({"_id": oid})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Remove profilePicture field
+        result = users_collection.update_one(
+            {"_id": oid},
+            {"$unset": {"profilePicture": ""}}
+        )
+        
+        if result.modified_count == 0 and "profilePicture" not in user:
+            # No picture existed
+            return {
+                "message": "No profile picture to remove",
+                "userId": userId,
+                "modified": False
+            }
+        
+        # Fetch and return the updated user (excluding password)
+        updated_user = users_collection.find_one({"_id": oid})
+        updated_user.pop("password", None)
+        updated_user["_id"] = str(updated_user["_id"])
+        
+        return {
+            "message": "Profile picture removed successfully",
+            "userId": userId,
+            "modified": True,
+            "profile": updated_user
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error removing profile picture: {str(e)}")
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)
-
-
-

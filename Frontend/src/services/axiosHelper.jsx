@@ -145,4 +145,57 @@ export const apiHelper = {
       throw error;
     }
   },
+
+  getUserProfile: async (userId) => {
+    try {
+      const response = await apiClient.get(`/users/${userId}/profile`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      throw error;
+    }
+  },
+
+  updateUserProfile: async (userId, profileData) => {
+    try {
+      const response = await apiClient.put(
+        `/users/${userId}/profile`,
+        profileData
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw error;
+    }
+  },
+
+  uploadProfilePicture: async (userId, formData) => {
+    try {
+      const response = await apiClient.post(
+        `/users/${userId}/profile/picture`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      throw error;
+    }
+  },
+
+  deleteProfilePicture: async (userId) => {
+    try {
+      const response = await apiClient.delete(
+        `/users/${userId}/profile/picture`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting profile picture:', error);
+      throw error;
+    }
+  },
 };

@@ -67,14 +67,14 @@ export default function LoginModal() {
         // Also update user details in user slice with new field structure
         dispatch(
           userActions.setUserDetails({
-            firstName: response.firstName,
-            lastName: '', // Backend doesn't return lastName yet
-            email: email,
-            dateOfBirth: '',
-            profession: '',
-            bio: '',
-            location: '',
-            phone: '',
+            firstName: response.firstName || '',
+            lastName: response.lastName || '',
+            email: response.email || email,
+            dateOfBirth: response.dateOfBirth || '',
+            profession: response.profession || '',
+            bio: response.bio || '',
+            location: response.location || '',
+            phone: response.phone || '',
           })
         );
       }

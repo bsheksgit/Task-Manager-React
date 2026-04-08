@@ -20,9 +20,14 @@ export default function DeleteConfirmModal() {
   const isOpen = modal?.isOpen;
   const taskId = modal?.taskId;
 
-  const handleClose = () => {
+  const closeModalOnly = () => {
     dispatch(commonActions.closeDeleteConfirm());
     setFailedReason(null);
+  };
+
+  const handleClose = () => {
+    closeModalOnly();
+    dispatch(commonActions.finishTaskDeletion());
   };
 
   const handleConfirm = () => {
@@ -37,13 +42,23 @@ export default function DeleteConfirmModal() {
       return;
     }
 
+    // Start deletion loading state
+    dispatch(commonActions.startTaskDeletion());
+
     // Trigger optimistic delete mutation
     deleteTask(
       { userId, taskId },
       {
         onSuccess: () => {
           // Close modal immediately after mutation starts (UI already updated)
-          handleClose();
+          closeModalOnly();
+
+          // Wait 1.5 seconds for visual feedback, then navigate to tasks page
+          setTimeout(() => {
+            window.location.href = `/users/${userId}/tasks`;
+            // Finish deletion loading state after navigation
+            dispatch(commonActions.finishTaskDeletion());
+          }, 1500);
         },
         onError: (err) => {
           // Error handling is done in the mutation's onError callback
@@ -53,6 +68,8 @@ export default function DeleteConfirmModal() {
           const short =
             typeof reason === 'string' ? reason.slice(0, 160) : String(reason);
           setFailedReason(short);
+          // Finish deletion loading state on error
+          dispatch(commonActions.finishTaskDeletion());
         },
       }
     );

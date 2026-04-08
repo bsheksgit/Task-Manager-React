@@ -12,6 +12,11 @@ const commonSlice = createSlice({
       title: '',
       userId: null,
     },
+    deleteAccountModal: {
+      isOpen: false,
+      step: 1, // 1 = warning, 2 = credentials, 3 = loading
+      error: null,
+    },
     isDeletingTask: false,
   },
   reducers: {
@@ -69,6 +74,23 @@ const commonSlice = createSlice({
     },
     finishTaskDeletion: (state) => {
       state.isDeletingTask = false;
+    },
+    openDeleteAccountModal: (state) => {
+      state.deleteAccountModal.isOpen = true;
+      state.deleteAccountModal.step = 1;
+      state.deleteAccountModal.error = null;
+    },
+    closeDeleteAccountModal: (state) => {
+      state.deleteAccountModal.isOpen = false;
+      state.deleteAccountModal.step = 1;
+      state.deleteAccountModal.error = null;
+    },
+    setDeleteAccountModalStep: (state, action) => {
+      state.deleteAccountModal.step = action.payload;
+      state.deleteAccountModal.error = null;
+    },
+    setDeleteAccountModalError: (state, action) => {
+      state.deleteAccountModal.error = action.payload;
     },
   },
 });

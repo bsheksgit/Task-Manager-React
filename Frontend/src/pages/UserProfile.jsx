@@ -13,6 +13,7 @@ import {
   useUpdateUserProfile,
 } from '../hooks/useUserProfile.jsx';
 import { apiHelper } from '../services/axiosHelper.jsx';
+import DeleteAccountModal from '../components/DeleteAccountModal.jsx';
 
 // Character limits for profile fields
 const FIRST_NAME_LIMIT = 30;
@@ -409,19 +410,9 @@ export default function UserProfile() {
     });
   };
 
-  // Handle delete account (non-functional)
+  // Handle delete account - opens confirmation modal
   const handleDeleteAccount = () => {
-    setDeleting(true);
-    // Show confirmation modal in future
-    setTimeout(() => {
-      setDeleting(false);
-      dispatch(
-        commonActions.openSnackbar({
-          message: 'Account deletion functionality coming soon!',
-          severity: 'warning',
-        })
-      );
-    }, 1000);
+    dispatch(commonActions.openDeleteAccountModal());
   };
 
   return (
@@ -1037,13 +1028,13 @@ export default function UserProfile() {
             <div className="mt-4 text-sm text-gray-500">
               <p>* Required fields</p>
               <p className="mt-1">
-                Note: Buttons are non-functional in this phase. Functionality
-                will be added in future updates.
+                Note: Delete account functionality is now available.
               </p>
             </div>
           </div>
         </div>
       </div>
+      <DeleteAccountModal />
     </div>
   );
 }

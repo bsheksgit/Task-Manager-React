@@ -94,8 +94,8 @@ export const apiHelper = {
   },
   saveUserTasks: async (userId, tasks) => {
     try {
-      const payload = { userId, tasks };
-      const response = await apiClient.post('/save-user-tasks', payload);
+      const payload = { tasks };
+      const response = await apiClient.post(`/users/${userId}/tasks`, payload);
       return response.data;
     } catch (error) {
       console.error('Error saving user tasks:', error);
@@ -104,9 +104,7 @@ export const apiHelper = {
   },
   getUserTasks: async (userId) => {
     try {
-      const response = await apiClient.get('/get-user-tasks', {
-        params: { userId },
-      });
+      const response = await apiClient.get(`/users/${userId}/tasks`);
       return response.data;
     } catch (error) {
       console.error('Error fetching user tasks:', error);
@@ -136,9 +134,9 @@ export const apiHelper = {
   },
   deleteUserTask: async (userId, taskId) => {
     try {
-      const response = await apiClient.delete('/delete-user-task', {
-        params: { userId, taskId },
-      });
+      const response = await apiClient.delete(
+        `/users/${userId}/tasks/${taskId}`
+      );
       return response.data;
     } catch (error) {
       console.error('Error deleting user task:', error);
@@ -195,6 +193,18 @@ export const apiHelper = {
       return response.data;
     } catch (error) {
       console.error('Error deleting profile picture:', error);
+      throw error;
+    }
+  },
+
+  deleteUser: async (userId, password, confirmationText) => {
+    try {
+      const response = await apiClient.delete(`/users/${userId}`, {
+        data: { password, confirmationText },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting user:', error);
       throw error;
     }
   },

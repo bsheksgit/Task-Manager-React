@@ -111,8 +111,12 @@ class UserTask(BaseModel):
     modified_at: datetime | None = None
 
 class UserTasksRequest(BaseModel):
-    userId: str
     tasks: list[UserTask]
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str
+    confirmationText: str
 
 
 
@@ -202,8 +206,8 @@ def login(request: LoginRequest):
     }
 
 
-@app.post("/save-user-tasks")
-def save_user_tasks(tasks: UserTasksRequest, payload: dict = fastapi.Depends(get_current_user)):
+@app.post("/users/{userId}/tasks")
+def save_user_tasks(userId: str, tasks: UserTasksRequest, payload: dict = fastapi.Depends(get_current_user)):
     """Save a user's tasks: each task becomes its own document in `tasks` collection.
 
     Behavior: for each incoming task, backend assigns a `taskId` if missing and performs
@@ -211,6 +215,9 @@ def save_user_tasks(tasks: UserTasksRequest, payload: dict = fastapi.Depends(get
     tasks are inserted.
     """
     user_id = payload.get("user_id")
+    # Verify that the authenticated user matches the path userId
+    if user_id != userId:
+        raise HTTPException(status_code=403, detail="Forbidden: cannot save tasks for another user")
 
     # Use the parsed Pydantic list directly (attributes available as Python names)
     incoming = tasks.tasks or []
@@ -274,7 +281,7 @@ def save_user_tasks(tasks: UserTasksRequest, payload: dict = fastapi.Depends(get
         raise HTTPException(status_code=500, detail=f"Error saving task: {str(e)}")
 
 
-@app.get("/get-user-tasks")
+@app.get("/users/{userId}/tasks")
 def get_user_tasks(userId: str, payload: dict = fastapi.Depends(get_current_user)):
     """Fetch all tasks for a given `userId`. Requires Authorization header.
 
@@ -413,7 +420,7 @@ def update_user_task(
         raise HTTPException(status_code=500, detail=f"Error updating task: {str(e)}")
 
 
-@app.delete("/delete-user-task")
+@app.delete("/users/{userId}/tasks/{taskId}")
 def delete_user_task(userId: str, taskId: str, payload: dict = fastapi.Depends(get_current_user)):
     """Delete a single task for a user. Requires Authorization header.
 
@@ -707,6 +714,66 @@ def delete_profile_picture(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error removing profile picture: {str(e)}")
+
+
+@app.delete("/users/{userId}")
+def delete_user_account(
+    userId: str,
+    delete_request: DeleteAccountRequest,
+    payload: dict = fastapi.Depends(get_current_user)
+):
+    """Delete user account and all associated tasks. Requires Authorization header.
+    
+    Validates that the requester matches `userId`, verifies password,
+    checks confirmation text, deletes all user tasks, then deletes user.
+    """
+    requesting_user = payload.get("user_id")
+    if requesting_user != userId:
+        raise HTTPException(status_code=403, detail="Forbidden: cannot delete other user's account")
+    
+    try:
+        try:
+            oid = ObjectId(userId)
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Invalid user id: {userId}")
+        
+        # Check if user exists
+        user = users_collection.find_one({"_id": oid})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Verify password
+        if not verify_password(delete_request.password, user["password"]):
+            raise HTTPException(status_code=400, detail="Incorrect password")
+        
+        # Verify confirmation text (case-insensitive)
+        expected_text = "i want to delete my account"
+        if delete_request.confirmationText.lower() != expected_text:
+            raise HTTPException(
+                status_code=400, 
+                detail=f'Confirmation text must be exactly "{expected_text}" (case-insensitive)'
+            )
+        
+        # Delete all tasks for the user first
+        tasks_result = tasks_collection.delete_many({"userId": userId})
+        tasks_deleted = tasks_result.deleted_count
+        
+        # Delete the user
+        user_result = users_collection.delete_one({"_id": oid})
+        if user_result.deleted_count == 0:
+            # This should not happen since we just found the user, but handle anyway
+            raise HTTPException(status_code=500, detail="Failed to delete user account")
+        
+        return {
+            "message": "Account deleted successfully",
+            "userId": userId,
+            "tasks_deleted": tasks_deleted,
+            "user_deleted": True
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting account: {str(e)}")
 
 
 if __name__ == "__main__":

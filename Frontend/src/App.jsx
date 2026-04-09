@@ -10,6 +10,7 @@ import Alert from '@mui/material/Alert';
 import ErrorModal from './components/ErrorModal.jsx';
 import NewTaskModal from './components/NewTaskModal.jsx';
 import DeleteConfirmModal from './components/DeleteConfirmModal.jsx';
+import SubscribeModal from './components/SubscribeModal.jsx';
 
 function App() {
   const loginModalIsOpen = useSelector(
@@ -48,6 +49,7 @@ function App() {
       {errorModalIsOpen && <ErrorModal />}
       {newTaskModalIsOpen && <NewTaskModal />}
       <DeleteConfirmModal />
+      <SubscribeModal />
     </>
   );
 }

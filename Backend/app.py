@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError, ExpiredSignatureError
 from pydantic import Field
 from fastapi import HTTPException, UploadFile, File
-from PIL import Image
+from PIL import Image, ImageOps
 
 app = fastapi.FastAPI()
 
@@ -548,10 +548,13 @@ def update_user_profile(
 
 
 def process_profile_image(file_bytes: bytes) -> str:
-    """Process uploaded image: crop to square, resize to 192x192, convert to JPEG 80% quality."""
+    """Process uploaded image: apply EXIF orientation, crop to square, resize to 192x192, convert to JPEG 80% quality."""
     try:
         # Open image from bytes
         image = Image.open(io.BytesIO(file_bytes))
+        
+        # Apply EXIF orientation if present (fixes rotation issues from smartphones/cameras)
+        image = ImageOps.exif_transpose(image)
         
         # Convert to RGB if necessary (for PNG with transparency)
         if image.mode in ('RGBA', 'LA', 'P'):

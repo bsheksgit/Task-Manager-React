@@ -17,6 +17,10 @@ const commonSlice = createSlice({
       step: 1, // 1 = warning, 2 = credentials, 3 = loading
       error: null,
     },
+    subscribeModal: {
+      isOpen: false,
+      step: 1, // 1 = confirmation, 2 = success
+    },
     isDeletingTask: false,
   },
   reducers: {
@@ -91,6 +95,17 @@ const commonSlice = createSlice({
     },
     setDeleteAccountModalError: (state, action) => {
       state.deleteAccountModal.error = action.payload;
+    },
+    openSubscribeModal: (state) => {
+      state.subscribeModal.isOpen = true;
+      state.subscribeModal.step = 1;
+    },
+    closeSubscribeModal: (state) => {
+      state.subscribeModal.isOpen = false;
+      state.subscribeModal.step = 1;
+    },
+    setSubscribeModalStep: (state, action) => {
+      state.subscribeModal.step = action.payload;
     },
   },
 });

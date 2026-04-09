@@ -100,9 +100,12 @@ export default function UserTasks() {
             Manage your tasks efficiently and stay organized.
           </p>
           <div className="flex gap-4 items-center mr-6 mt-4">
-            <Link to="/subscribe" className="text-indigo-600 hover:underline">
+            <button
+              onClick={() => dispatch(commonActions.openSubscribeModal())}
+              className="text-indigo-600 hover:underline bg-transparent border-none cursor-pointer p-0"
+            >
               Subscribe
-            </Link>
+            </button>
             <Link
               to={`/users/${userId}/profile`}
               className="text-indigo-600 hover:underline"

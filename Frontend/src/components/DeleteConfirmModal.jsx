@@ -53,12 +53,20 @@ export default function DeleteConfirmModal() {
           // Close modal immediately after mutation starts (UI already updated)
           closeModalOnly();
 
-          // Wait 1.5 seconds for visual feedback, then navigate to tasks page
-          setTimeout(() => {
-            window.location.href = `/users/${userId}/tasks`;
-            // Finish deletion loading state after navigation
+          // Check if we should navigate (only when modal.userId exists)
+          const shouldNavigate = !!modal?.userId;
+
+          if (shouldNavigate) {
+            // Wait 1.5 seconds for visual feedback, then navigate to tasks page
+            setTimeout(() => {
+              window.location.href = `/users/${userId}/tasks`;
+              dispatch(commonActions.finishTaskDeletion());
+            }, 1500);
+          } else {
+            // No navigation needed - we're already on tasks page
+            // Just finish the deletion loading state
             dispatch(commonActions.finishTaskDeletion());
-          }, 1500);
+          }
         },
         onError: (err) => {
           // Error handling is done in the mutation's onError callback

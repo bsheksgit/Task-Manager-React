@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CircularProgress from '@mui/material/CircularProgress';
+import Typography from '@mui/material/Typography';
 import { userActions } from '../store/userSlice';
 import { commonActions } from '../store/commonSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -15,9 +16,14 @@ export default function UserTasks() {
   const dispatch = useDispatch();
   const userTasks = useSelector((state) => state.user.userTasks);
   const userDetails = useSelector((state) => state.user.userDetails);
+  const authUser = useSelector((state) => state.loginModal?.auth?.user);
   const navigate = useNavigate();
-  // Use Redux store for user info
-  const storedFirstName = userDetails.firstName || 'New User';
+  // Use auth.user as primary source, fallback to userDetails
+  const storedFirstName =
+    authUser?.firstName ||
+    userDetails.firstName ||
+    JSON.parse(localStorage.getItem('user'))?.firstName ||
+    'User';
 
   const loaderData = useLoaderData();
   const [loading, setLoading] = useState(true);
@@ -120,8 +126,11 @@ export default function UserTasks() {
       </div>
 
       {loading ? (
-        <div className="w-11/12 col-span-full text-center py-10">
-          Loading tasks…
+        <div className="w-11/12 col-span-full text-center py-10 flex flex-col items-center justify-center gap-4">
+          <CircularProgress size={60} />
+          <Typography variant="body1" color="text.secondary">
+            Loading your tasks...
+          </Typography>
         </div>
       ) : error ? (
         <div className="w-11/12 col-span-full text-center py-10">

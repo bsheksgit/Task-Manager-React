@@ -471,9 +471,11 @@ export default function UserProfile() {
                   )}
                 </div>
                 <div className="text-center mb-2">
-                  <p className="text-gray-600">
-                    Upload a profile picture to personalize your account
-                  </p>
+                  {!(picturePreview || userDetails.profilePicture) && (
+                    <p className="text-gray-600">
+                      Upload a profile picture to personalize your account
+                    </p>
+                  )}
                 </div>
                 <div className="relative">
                   <input
@@ -485,19 +487,21 @@ export default function UserProfile() {
                   />
                   <label
                     htmlFor="profile-picture"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer"
+                    className="my-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 cursor-pointer"
                   >
-                    Upload Picture
+                    {picturePreview || userDetails.profilePicture
+                      ? 'Change Picture'
+                      : 'Upload Picture'}
                   </label>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-gray-500 my-4">
                   Max size: 5MB • JPG, PNG, WebP
                 </p>
                 {(picturePreview || userDetails.profilePicture) && (
                   <button
                     onClick={handleDeleteProfilePicture}
                     disabled={uploadingPicture}
-                    className={`mt-3 px-4 py-2 rounded hover:cursor-pointer ${uploadingPicture ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                    className={`px-4 py-2 rounded hover:cursor-pointer ${uploadingPicture ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
                   >
                     {uploadingPicture ? 'Processing...' : 'Delete Picture'}
                   </button>
@@ -1028,7 +1032,8 @@ export default function UserProfile() {
             <div className="mt-4 text-sm text-gray-500">
               <p>* Required fields</p>
               <p className="mt-1">
-                Note: Delete account functionality is now available.
+                Note: All of your tasks will be deleted if you delete your
+                account. This action cannot be undone.
               </p>
             </div>
           </div>

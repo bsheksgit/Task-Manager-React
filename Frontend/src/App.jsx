@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 import router from './routes';
 import { RouterProvider } from 'react-router-dom';
 import LoginModal from './components/LoginModal.jsx';
 import { useSelector, useDispatch } from 'react-redux';
 import { commonActions } from './store/commonSlice.jsx';
+import { userActions } from './store/userSlice.jsx';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import ErrorModal from './components/ErrorModal.jsx';
@@ -23,7 +24,22 @@ function App() {
     (state) => state.common.newTaskModal.isOpen
   );
   const snackbar = useSelector((state) => state.common.snackbar);
+  const authUser = useSelector((state) => state.loginModal?.auth?.user);
   const dispatch = useDispatch();
+
+  // Sync userDetails from auth.user on app load
+  useEffect(() => {
+    if (authUser && authUser.firstName) {
+      dispatch(
+        userActions.setUserDetails({
+          firstName: authUser.firstName,
+          lastName: authUser.lastName || '',
+          email: authUser.email || '',
+          // Sync other fields if available in auth.user
+        })
+      );
+    }
+  }, [authUser, dispatch]);
 
   return (
     <>

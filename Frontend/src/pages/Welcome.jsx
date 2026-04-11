@@ -8,6 +8,7 @@ import { loginModalActions } from '../store/loginSlice.jsx';
 import { commonActions } from '../store/commonSlice.jsx';
 import { apiHelper } from '../services/axiosHelper.jsx';
 import useHTTP from '../hooks/useHTTP.jsx';
+import LoginIcon from '@mui/icons-material/Login';
 
 export default function Welcome() {
   const dispatch = useDispatch();
@@ -123,8 +124,8 @@ export default function Welcome() {
         flex flex-col items-center"
     >
       <div className="flex flex-row justify-between min-h-1/10 w-full">
-        <Notebook className="text-6xl text-gray-600" />
-        <h1 className="text-4xl font-bold text-gray-800 mt-2">
+        <Notebook className="hidden lg:block text-6xl text-gray-600" />
+        <h1 className="text-lg lg:text-4xl font-bold text-gray-800 mt-2">
           Welcome to your personal Task Manager
         </h1>
         <button
@@ -142,20 +143,21 @@ export default function Welcome() {
                 hover:-translate-y-1 hover:scale-105 hover:bg-indigo-500 hover:cursor-pointer"
           onClick={() => handleLogin()}
         >
-          Login
+          <LoginIcon className="text-white lg:hidden" />
+          <p className="hidden lg:block">Login</p>
         </button>
       </div>
 
       <div
-        className={`flex flex-col justify-center items-center m-10
-            outline-1 outline-gray-500 outline-solid rounded-lg p-8
-            bg-amber-300 max-w-2/3 justify-self-center ${isLoading ? 'blur-xs' : ''}`}
+        className={`flex flex-col justify-center items-center m-5 lg:m-10
+            outline-1 outline-gray-500 outline-solid rounded-lg p-5 lg:p-8
+            bg-amber-300 lg:max-w-2/3 max-w-11/12 justify-self-center ${isLoading ? 'blur-xs' : ''}`}
       >
-        <h2 className="text-2xl font-bold text-gray-700">
+        <h2 className="text-md lg:text-2xl font-bold text-gray-700">
           Organize your tasks, boost your productivity, and achieve your goals
           with ease.
         </h2>
-        <h2 className="text-2xl font-bold mt-5 text-gray-700">
+        <h2 className="text-md lg:text-2xl font-bold mt-5 text-gray-700">
           Sign up now to get started!
         </h2>
         <form
@@ -167,20 +169,20 @@ export default function Welcome() {
             name="firstName"
             variant="filled"
             required
-            className="min-w-1/2 mt-10"
+            className="w-11/12 lg:w-1/2 mt-5"
           />
           <TextField
             label="Last Name"
             name="lastName"
             variant="filled"
-            className="min-w-1/2 mt-4"
+            className="w-11/12 lg:w-1/2 mt-4"
           />
           <TextField
             label="Email"
             name="email"
             variant="filled"
             required
-            className="min-w-1/2 mt-4"
+            className="w-11/12 lg:w-1/2 mt-4"
           />
           <TextField
             label="Create Password"
@@ -188,7 +190,7 @@ export default function Welcome() {
             variant="filled"
             type="password"
             required
-            className="min-w-1/2 mt-4"
+            className="w-11/12 lg:w-1/2 mt-4"
           />
           <TextField
             label="Re-Enter Password"
@@ -196,7 +198,7 @@ export default function Welcome() {
             variant="filled"
             type="password"
             required
-            className="min-w-1/2 mt-4"
+            className="w-11/12 lg:w-1/2 mt-4"
           />
           <button
             className={`mt-4 

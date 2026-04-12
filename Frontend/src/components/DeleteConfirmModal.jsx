@@ -91,7 +91,7 @@ export default function DeleteConfirmModal() {
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={handleClose}
       />
-      <div className="relative bg-[#bec1c3] rounded-lg p-8 w-1/2 flex flex-col items-center gap-2 shadow-lg">
+      <div className="relative bg-[#bec1c3] rounded-lg p-8 w-11/12 lg:w-1/2 flex flex-col items-center gap-2 shadow-lg">
         <h2 className="text-[#7b5063da] text-2xl font-bold mb-2">
           {failedReason ? 'Delete Failed' : 'Confirm Delete'}
         </h2>

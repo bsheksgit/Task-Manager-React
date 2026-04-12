@@ -307,7 +307,7 @@ export default function UserTask() {
           <h1 className="text-3xl font-bold text-[#7b5063da] ml-5 pt-4">
             {taskData.title || 'Task Details'}
           </h1>
-          <div className="flex gap-4 items-center mr-6 mt-4">
+          <div className="lg:flex gap-4 items-center mr-6 mt-4 hidden">
             <Link to="/logout" className="text-red-600 hover:underline">
               Logout
             </Link>
@@ -316,9 +316,14 @@ export default function UserTask() {
       </div>
 
       {/* Back button */}
-      <div className="w-full flex flex-row justify-between items-center mx-6">
+      <div className="w-full flex flex-row justify-between items-center mx-6 mt-4 lg:mt-0">
         <div className="text-indigo-600 hover:underline gap-2 ml-4">
           <Link to={`/users/${userId}/tasks`}>← Back to Tasks</Link>
+        </div>
+        <div className="gap-2 mr-6 lg:hidden">
+          <Link to="/logout" className="text-red-600 hover:underline">
+            Logout
+          </Link>
         </div>
       </div>
 
@@ -494,12 +499,14 @@ export default function UserTask() {
                           className={`flex-1 p-2 border rounded text-gray-800 ${countCharacters(item) > TODO_ITEM_LIMIT ? 'border-red-500' : ''}`}
                           autoFocus
                         />
+                      </div>
+                      <div className="flex flex-row">
                         <button
                           onClick={() =>
                             countCharacters(item) <= TODO_ITEM_LIMIT &&
                             handleTodoEdit(index, item)
                           }
-                          className={`px-3 py-1 rounded hover:cursor-pointer ${countCharacters(item) > TODO_ITEM_LIMIT ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                          className={`mx-1 px-3 py-1 rounded hover:cursor-pointer ${countCharacters(item) > TODO_ITEM_LIMIT ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
                           disabled={countCharacters(item) > TODO_ITEM_LIMIT}
                         >
                           Done
@@ -556,7 +563,7 @@ export default function UserTask() {
           {/* Add Todo Input */}
           {isAddingNewTodo && (
             <div className="mt-4">
-              <div className="flex gap-2 mb-1">
+              <div className="flex gap-2 mb-1 flex-col lg:flex-row items-start lg:items-center">
                 <input
                   type="text"
                   value={newTodo}
@@ -566,26 +573,28 @@ export default function UserTask() {
                     countCharacters(newTodo) <= TODO_ITEM_LIMIT &&
                     handleAddTodo()
                   }
-                  className={`flex-1 p-2 border rounded ${countCharacters(newTodo) > TODO_ITEM_LIMIT ? 'border-red-500' : ''}`}
+                  className={`w-full flex-1 p-2 border rounded ${countCharacters(newTodo) > TODO_ITEM_LIMIT ? 'border-red-500' : ''}`}
                   placeholder="Enter todo item..."
                   autoFocus
                 />
-                <button
-                  onClick={handleAddTodo}
-                  className={`px-4 py-2 rounded hover:cursor-pointer ${countCharacters(newTodo) > TODO_ITEM_LIMIT ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
-                  disabled={countCharacters(newTodo) > TODO_ITEM_LIMIT}
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => {
-                    setIsAddingNewTodo(false);
-                    setNewTodo('');
-                  }}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 hover:cursor-pointer"
-                >
-                  Cancel
-                </button>
+                <div>
+                  <button
+                    onClick={handleAddTodo}
+                    className={`px-4 py-2 mx-1 rounded hover:cursor-pointer ${countCharacters(newTodo) > TODO_ITEM_LIMIT ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                    disabled={countCharacters(newTodo) > TODO_ITEM_LIMIT}
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAddingNewTodo(false);
+                      setNewTodo('');
+                    }}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 hover:cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
               <div
                 className={`text-xs ${countCharacters(newTodo) > TODO_ITEM_LIMIT ? 'text-red-600' : 'text-gray-600'}`}

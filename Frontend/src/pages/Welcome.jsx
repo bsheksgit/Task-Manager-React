@@ -124,18 +124,15 @@ export default function Welcome() {
         flex flex-col items-center"
     >
       <div className="flex flex-row justify-between min-h-1/10 w-full">
-        <Notebook className="hidden lg:block text-6xl text-gray-600" />
-        <h1 className="text-lg lg:text-4xl font-bold text-gray-800 mt-2">
+        <Notebook className="text-4xl lg:block lg:text-6xl text-gray-600 mt-2" />
+        <h1 className="hidden lg:block text-4xl font-bold text-gray-800 mt-2">
           Welcome to your personal Task Manager
         </h1>
+        <h1 className="text-xl lg:hidden font-bold text-gray-800 mt-2">
+          Your personal Task Manager
+        </h1>
         <button
-          className="m-2 
-                px-2
-                py-4 
-                w-1/15
-                h-1/20
-                min-w-fit
-                min-h-fit
+          className="m-1 p-2 lg:px-4
                 bg-indigo-400 
                 text-white
                 ease-in-out duration-200
@@ -143,7 +140,7 @@ export default function Welcome() {
                 hover:-translate-y-1 hover:scale-105 hover:bg-indigo-500 hover:cursor-pointer"
           onClick={() => handleLogin()}
         >
-          <LoginIcon className="text-white lg:hidden" />
+          <LoginIcon fontSize="small" className="text-white lg:hidden" />
           <p className="hidden lg:block">Login</p>
         </button>
       </div>

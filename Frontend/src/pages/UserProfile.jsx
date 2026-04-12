@@ -440,10 +440,10 @@ export default function UserProfile() {
 
       {/* Profile Content */}
       <div className="w-11/12 max-w-6xl bg-yellow-300/60 backdrop-blur-sm rounded-lg shadow-md p-6 m-5">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Left Column - Profile Picture */}
           <div className="lg:col-span-1">
-            <div className="mb-8">
+            <div className="mb-0">
               <h2 className="text-2xl font-bold text-[#7b5063da] mb-4 text-center">
                 Profile Picture
               </h2>

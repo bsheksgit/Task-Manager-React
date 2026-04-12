@@ -254,7 +254,7 @@ export default function DeleteAccountModal() {
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={closeModal}
       />
-      <div className="relative bg-[#bec1c3] rounded-lg p-8 w-1/2 max-w-md flex flex-col items-center gap-4 shadow-lg">
+      <div className="relative bg-[#bec1c3] rounded-lg p-8 w-11/12 lg:w-1/2 max-w-md flex flex-col items-center gap-4 shadow-lg">
         {renderStep()}
 
         {/* Close button for error state (only shown when there's an error and not in loading step) */}

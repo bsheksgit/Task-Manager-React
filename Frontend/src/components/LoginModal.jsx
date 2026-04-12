@@ -110,7 +110,7 @@ export default function LoginModal() {
       <dialog
         ref={loginRef}
         onCancel={(e) => e.preventDefault()}
-        className="bg-gray-200 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg p-10 w-1/2 flex flex-col items-center justify-center gap-4"
+        className="bg-gray-200 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg p-6 lg:p-10 w-10/12 lg:w-1/2 flex flex-col items-center justify-center gap-4"
       >
         <div
           className="absolute top-2 right-2 cursor-pointer hover:bg-red-600 rounded-lg"
@@ -131,7 +131,7 @@ export default function LoginModal() {
             />
           </svg>
         </div>
-        <h1 className="text-4xl font-bold text-gray-800">
+        <h1 className="text-2xl lg:text-4xl font-bold text-gray-800">
           Enter your credentials
         </h1>
 
@@ -143,14 +143,14 @@ export default function LoginModal() {
             label="Email"
             name="email"
             variant="filled"
-            className="w-1/2 mt-5"
+            className="w-11/12 lg:w-1/2 mt-5"
             required
           />
           <TextField
             label="Password"
             name="password"
             variant="filled"
-            className="w-1/2 mt-4 mb-5"
+            className="w-11/12 lg:w-1/2 mt-4 mb-5"
             required
             type="password"
           />

@@ -50,7 +50,7 @@ export default function SubscribeModal() {
       />
 
       {/* Modal Content */}
-      <div className="relative bg-yellow-200 rounded-lg p-10 w-1/2 max-w-md flex flex-col items-center justify-center gap-6">
+      <div className="relative bg-yellow-200 rounded-lg p-10 w-11/12 lg:w-1/2 max-w-md flex flex-col items-center justify-center gap-6">
         {/* Close button */}
         <div
           className="absolute top-2 right-2 cursor-pointer hover:bg-red-600/50 rounded-lg p-1"

@@ -236,8 +236,8 @@ export default function UserTasks() {
       )}
       {userTasks.tasks.length > 0 && (
         <button
-          className="lg:hidden fixed bottom-6 right-6 rounded-full bg-amber-600 p-4 text-black shadow-lg 
-          hover:scale-105 transform transition z-50 min-h-[60px] min-w-[60px]"
+          className="lg:hidden fixed bottom-4 right-4 rounded-full bg-amber-600 p-2 text-black shadow-lg 
+          hover:scale-105 transform transition z-50"
           onClick={handleAddTask}
         >
           <span

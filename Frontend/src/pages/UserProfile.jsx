@@ -64,12 +64,13 @@ export default function UserProfile() {
   // Get user info from Redux store
   const userDetails = useSelector((state) => state.user.userDetails);
 
-  // Effect to populate Redux store with profile data from backend on mount
-  useEffect(() => {
-    if (profileData?.profile) {
-      dispatch(userActions.setUserDetails(profileData.profile));
-    }
-  }, [profileData, dispatch]);
+  // Lockout state - must be declared before useEffects that reference them
+  const [isDeleteLocked, setIsDeleteLocked] = useState(false);
+  const [lockoutRemaining, setLockoutRemaining] = useState({
+    hours: 0,
+    minutes: 0,
+  });
+  const [lockoutTimer, setLockoutTimer] = useState(null);
 
   // State for editing mode
   const [editingFirstName, setEditingFirstName] = useState(false);
@@ -84,6 +85,77 @@ export default function UserProfile() {
   const [uploadingPicture, setUploadingPicture] = useState(false);
   const [picturePreview, setPicturePreview] = useState(null); // object URL for preview
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Simulate loading state
+  const [saving, _setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Effect to populate Redux store with profile data from backend on mount
+  useEffect(() => {
+    if (profileData?.profile) {
+      dispatch(userActions.setUserDetails(profileData.profile));
+    }
+  }, [profileData, dispatch]);
+
+  // Effect to check delete lockout status from profile data
+  useEffect(() => {
+    if (profileData?.profile?.delete_lockout_status) {
+      const lockoutStatus = profileData.profile.delete_lockout_status;
+      setIsDeleteLocked(lockoutStatus.is_locked);
+
+      if (lockoutStatus.lockout_remaining) {
+        setLockoutRemaining({
+          hours: lockoutStatus.lockout_remaining.hours,
+          minutes: lockoutStatus.lockout_remaining.minutes,
+        });
+      }
+    }
+  }, [profileData]);
+
+  // Effect to set up countdown timer when locked
+  useEffect(() => {
+    if (
+      isDeleteLocked &&
+      lockoutRemaining.hours >= 0 &&
+      lockoutRemaining.minutes >= 0
+    ) {
+      // Clear any existing timer
+      if (lockoutTimer) {
+        clearInterval(lockoutTimer);
+      }
+
+      // Set up new timer to update countdown every minute
+      const timer = setInterval(() => {
+        setLockoutRemaining((prev) => {
+          let newHours = prev.hours;
+          let newMinutes = prev.minutes - 1;
+
+          if (newMinutes < 0) {
+            newHours -= 1;
+            newMinutes = 59;
+          }
+
+          // If lockout expired, clear timer and unlock
+          if (newHours < 0) {
+            clearInterval(timer);
+            setIsDeleteLocked(false);
+            return { hours: 0, minutes: 0 };
+          }
+
+          return { hours: newHours, minutes: newMinutes };
+        });
+      }, 60000); // Update every minute
+
+      setLockoutTimer(timer);
+
+      // Clean up timer on unmount
+      return () => {
+        if (timer) {
+          clearInterval(timer);
+        }
+      };
+    }
+  }, [isDeleteLocked, lockoutRemaining.hours, lockoutRemaining.minutes]);
 
   // Character count validation
   const firstNameCharCount = countCharacters(userDetails.firstName || '');
@@ -108,10 +180,6 @@ export default function UserProfile() {
     isBioOverLimit ||
     isLocationOverLimit ||
     isPhoneOverLimit;
-
-  // Simulate loading state
-  const [saving, _setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   // Show loading state while fetching profile data
   if (isLoadingProfile) {
@@ -262,10 +330,11 @@ export default function UserProfile() {
       const response = await apiHelper.uploadProfilePicture(userId, formData);
 
       // Update Redux store with new profile picture
-      if (response.profilePicture) {
+      const newPicture = response?.profile?.profilePicture;
+      if (newPicture) {
         dispatch(
           userActions.updateUserDetails({
-            profilePicture: response.profilePicture,
+            profilePicture: newPicture,
           })
         );
       }
@@ -1007,9 +1076,20 @@ export default function UserProfile() {
                   )
                 }
                 onClick={handleDeleteAccount}
-                disabled={deleting}
+                disabled={deleting || isDeleteLocked}
+                sx={{
+                  opacity: isDeleteLocked ? 0.7 : 1,
+                  '&.Mui-disabled': {
+                    backgroundColor: isDeleteLocked ? '#f44336' : undefined,
+                    color: isDeleteLocked ? 'white' : undefined,
+                  },
+                }}
               >
-                {deleting ? 'Processing...' : 'Delete Account'}
+                {deleting
+                  ? 'Processing...'
+                  : isDeleteLocked
+                    ? `Delete Account (locked for ${lockoutRemaining.hours}h ${lockoutRemaining.minutes}m)`
+                    : 'Delete Account'}
               </Button>
 
               <Button

@@ -165,11 +165,11 @@ export default function UserTasks() {
         <div className="w-11/12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-10 px-2 sm:px-4 items-stretch auto-rows-[minmax(140px,auto)]">
           {userTasks.tasks.map((task) => (
             <div
-              key={task._id}
+              key={task.id}
               className={`bg-yellow-300/60 backdrop-blur-sm rounded-lg shadow-md p-4 w-full flex flex-col justify-between h-full cursor-pointer hover:shadow-lg transition-shadow ${
-                loadingTaskId === task._id ? 'opacity-70' : ''
+                loadingTaskId === task.id ? 'opacity-70' : ''
               }`}
-              onClick={() => handleTaskClick(task._id)}
+              onClick={() => handleTaskClick(task.id)}
             >
               <div className="flex-1">
                 <h2 className="text-xl sm:text-2xl font-bold text-[#7b5063da]">
@@ -179,7 +179,7 @@ export default function UserTasks() {
                   {task.description}
                 </p>
               </div>
-              {loadingTaskId === task._id ? (
+              {loadingTaskId === task.id ? (
                 <div className="flex flex-row justify-center items-center gap-4 py-2">
                   <CircularProgress size={24} />
                   <span className="text-gray-600">Loading task...</span>
@@ -196,7 +196,7 @@ export default function UserTasks() {
                     onClick={() =>
                       dispatch(
                         commonActions.openDeleteConfirm({
-                          taskId: task._id,
+                          taskId: task.id,
                           title: task.title,
                         })
                       )

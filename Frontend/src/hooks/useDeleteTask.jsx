@@ -23,7 +23,7 @@ export function useDeleteTask() {
         if (!old?.tasks) return old;
         return {
           ...old,
-          tasks: old.tasks.filter((task) => task._id !== taskId),
+          tasks: old.tasks.filter((task) => task.id !== taskId),
         };
       });
 
@@ -47,7 +47,7 @@ export function useDeleteTask() {
         userActions.restoreTask({
           taskId: context?.taskId,
           task: context?.previousTasks?.tasks?.find(
-            (t) => t._id === context?.taskId
+            (t) => t.id === context?.taskId
           ),
         })
       );

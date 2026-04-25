@@ -46,7 +46,16 @@ export default function NewTaskModal() {
     const updated = { tasks: [...(userTasks?.tasks || []), newTask] };
 
     // prepare payload without local-only `id` fields
-    const tasksToSend = updated.tasks.map(({ id, ...rest }) => rest);
+    // Only strip temporary client-side id from the new task (id: Date.now())
+    // Keep real database ids for existing tasks so backend updates them instead of re-creating
+    const tasksToSend = updated.tasks.map((task) => {
+      if (!task.hasOwnProperty('created_at')) {
+        // This is the new task (no created_at means it's not from the server yet)
+        const { id, ...rest } = task;
+        return rest;
+      }
+      return task;
+    });
 
     // determine userId from redux or localStorage
     const userId =

@@ -103,12 +103,12 @@ export default function SubscribeModal() {
         ) : (
           // Success Step
           <>
-            <div className="success-checkmark">
-              <div className="check-icon">
-                <span className="icon-line line-tip"></span>
-                <span className="icon-line line-long"></span>
-                <div className="icon-circle"></div>
-                <div className="icon-fix"></div>
+            <div className="w-20 h-20 mx-auto">
+              <div className="w-20 h-20 relative rounded-full box-content border-4 border-green-500 subscribe-check-icon">
+                <span className="subscribe-icon-line subscribe-line-tip"></span>
+                <span className="subscribe-icon-line subscribe-line-long"></span>
+                <div className="subscribe-icon-circle"></div>
+                <div className="subscribe-icon-fix"></div>
               </div>
             </div>
 
@@ -123,23 +123,8 @@ export default function SubscribeModal() {
       </div>
 
       {/* CSS for checkmark animation */}
-      <style jsx>{`
-        .success-checkmark {
-          width: 80px;
-          height: 80px;
-          margin: 0 auto;
-        }
-
-        .check-icon {
-          width: 80px;
-          height: 80px;
-          position: relative;
-          border-radius: 50%;
-          box-sizing: content-box;
-          border: 4px solid #4caf50;
-        }
-
-        .check-icon::before {
+      <style>{`
+        .subscribe-check-icon::before {
           top: 3px;
           left: -2px;
           width: 30px;
@@ -147,17 +132,17 @@ export default function SubscribeModal() {
           border-radius: 100px 0 0 100px;
         }
 
-        .check-icon::after {
+        .subscribe-check-icon::after {
           top: 0;
           left: 30px;
           width: 60px;
           transform-origin: 0 50%;
           border-radius: 0 100px 100px 0;
-          animation: rotate-circle 4.25s ease-in;
+          animation: subscribe-rotate-circle 4.25s ease-in;
         }
 
-        .check-icon::before,
-        .check-icon::after {
+        .subscribe-check-icon::before,
+        .subscribe-check-icon::after {
           content: '';
           height: 100px;
           position: absolute;
@@ -165,7 +150,7 @@ export default function SubscribeModal() {
           transform: rotate(-45deg);
         }
 
-        .icon-line {
+        .subscribe-icon-line {
           height: 5px;
           background-color: #4caf50;
           display: block;
@@ -174,23 +159,23 @@ export default function SubscribeModal() {
           z-index: 10;
         }
 
-        .line-tip {
+        .subscribe-line-tip {
           top: 46px;
           left: 14px;
           width: 25px;
           transform: rotate(45deg);
-          animation: icon-line-tip 0.75s;
+          animation: subscribe-icon-line-tip 0.75s;
         }
 
-        .line-long {
+        .subscribe-line-long {
           top: 38px;
           right: 8px;
           width: 47px;
           transform: rotate(-45deg);
-          animation: icon-line-long 0.75s;
+          animation: subscribe-icon-line-long 0.75s;
         }
 
-        .icon-circle {
+        .subscribe-icon-circle {
           top: -4px;
           left: -4px;
           z-index: 10;
@@ -202,7 +187,7 @@ export default function SubscribeModal() {
           border: 4px solid rgba(76, 175, 80, 0.5);
         }
 
-        .icon-fix {
+        .subscribe-icon-fix {
           top: 8px;
           width: 5px;
           left: 26px;
@@ -213,7 +198,7 @@ export default function SubscribeModal() {
           background-color: #ffffff;
         }
 
-        @keyframes rotate-circle {
+        @keyframes subscribe-rotate-circle {
           0% {
             transform: rotate(-45deg);
           }
@@ -228,7 +213,7 @@ export default function SubscribeModal() {
           }
         }
 
-        @keyframes icon-line-tip {
+        @keyframes subscribe-icon-line-tip {
           0% {
             width: 0;
             left: 1px;
@@ -256,7 +241,7 @@ export default function SubscribeModal() {
           }
         }
 
-        @keyframes icon-line-long {
+        @keyframes subscribe-icon-line-long {
           0% {
             width: 0;
             right: 46px;

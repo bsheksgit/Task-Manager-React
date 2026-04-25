@@ -27,7 +27,7 @@ const userSlice = createSlice({
     updateTaskTodoList: (state, action) => {
       const { taskId, todoList } = action.payload;
       const taskIndex = state.userTasks.tasks.findIndex(
-        (task) => task._id === taskId
+        (task) => task.id === taskId
       );
       if (taskIndex !== -1) {
         state.userTasks.tasks[taskIndex].todoList = todoList;
@@ -36,7 +36,7 @@ const userSlice = createSlice({
     updateTaskTitle: (state, action) => {
       const { taskId, title } = action.payload;
       const taskIndex = state.userTasks.tasks.findIndex(
-        (task) => task._id === taskId
+        (task) => task.id === taskId
       );
       if (taskIndex !== -1) {
         state.userTasks.tasks[taskIndex].title = title;
@@ -45,7 +45,7 @@ const userSlice = createSlice({
     updateTaskDescription: (state, action) => {
       const { taskId, description } = action.payload;
       const taskIndex = state.userTasks.tasks.findIndex(
-        (task) => task._id === taskId
+        (task) => task.id === taskId
       );
       if (taskIndex !== -1) {
         state.userTasks.tasks[taskIndex].description = description;
@@ -54,7 +54,7 @@ const userSlice = createSlice({
     removeTaskOptimistically: (state, action) => {
       const { taskId } = action.payload;
       state.userTasks.tasks = state.userTasks.tasks.filter(
-        (task) => task._id !== taskId
+        (task) => task.id !== taskId
       );
     },
     restoreTask: (state, action) => {
@@ -62,7 +62,7 @@ const userSlice = createSlice({
       if (task) {
         // Check if task already exists (shouldn't happen, but safe)
         const existingIndex = state.userTasks.tasks.findIndex(
-          (t) => t._id === taskId
+          (t) => t.id === taskId
         );
         if (existingIndex === -1) {
           // Add the task back at its original position (or at the end)

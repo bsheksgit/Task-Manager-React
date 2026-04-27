@@ -29,7 +29,7 @@ services:
         value: $PORT
     healthCheckPath: /docs
     autoDeploy: true
-    branch: main
+    branch: master
 
 databases:
   # PostgreSQL Database

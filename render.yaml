@@ -8,8 +8,8 @@ services:
     runtime: python
     region: oregon
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    buildCommand: cd Backend && pip install -r requirements.txt
+    startCommand: cd Backend && uvicorn app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -30,7 +30,6 @@ services:
     healthCheckPath: /docs
     autoDeploy: true
     branch: main
-    sourceDir: Backend
 
 databases:
   # PostgreSQL Database

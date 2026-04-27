@@ -3,7 +3,8 @@ import store from '../store/index';
 import { loginModalActions } from '../store/loginSlice.jsx';
 import { commonActions } from '../store/commonSlice.jsx';
 
-const API_BASE_URL = 'http://127.0.0.1:8000'; // Update with your backend URL
+// Use Vite env variable with fallback for local development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

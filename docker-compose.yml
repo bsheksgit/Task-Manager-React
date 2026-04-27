@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskmanager-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: taskmanager
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: taskmanager-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Use the Docker service name "postgres" as hostname
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/taskmanager
+      JWT_SECRET_KEY: "025hjoP8smSyb2o-98d5Y1CLt_N53rqo0gzr5dFY9xY"
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "10"
+      CORS_ORIGINS: "http://localhost:5173,http://localhost:3000,http://localhost"
+      HOST: "0.0.0.0"
+      PORT: "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # React Frontend (served via Nginx)
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: taskmanager-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      # This is only used at build time; for runtime, the Nginx serves static files
+      # The API URL is baked into the JS bundle at build time via VITE_API_URL
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+    driver: local

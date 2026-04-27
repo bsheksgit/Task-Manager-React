@@ -22,20 +22,23 @@ from database import get_db, engine, Base
 from models import User as UserModel, Task as TaskModel
 
 # Create all tables on startup (if they don't exist)
-# Wrapped in try-except so the app can still start if MySQL is unreachable
+# Wrapped in try-except so the app can still start if the database is unreachable
 try:
     Base.metadata.create_all(bind=engine)
-    print("[INFO] MySQL tables created/verified successfully")
+    print("[INFO] Database tables created/verified successfully")
 except Exception as e:
-    print(f"[WARNING] Could not create MySQL tables: {e}")
-    print("[WARNING] Signup/Login endpoints will fail until MySQL is reachable")
+    print(f"[WARNING] Could not create database tables: {e}")
+    print("[WARNING] Signup/Login endpoints will fail until the database is reachable")
 
 app = fastapi.FastAPI()
 
-# Configure CORS
+# Configure CORS — read from environment variable, fallback to localhost defaults
+CORS_ORIGINS_ENV = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost")
+CORS_ORIGINS_LIST = [origin.strip() for origin in CORS_ORIGINS_ENV.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+    allow_origins=CORS_ORIGINS_LIST,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

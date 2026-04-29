@@ -93,7 +93,7 @@ pipeline {
             echo 'Pipeline completed successfully!'
         }
         failure {
-            echo 'Pipeline failed. Check the logs for details.'
+            echo 'Pipeline failed. Check the logs for  details.'
         }
         always {
             cleanWs()
